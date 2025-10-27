@@ -1,0 +1,12 @@
+{
+  "name": "نظام المحاسبة",
+  "short_name": "المحاسبة",
+  "dir": "rtl",
+  "lang": "ar",
+  "start_url": "/Lolo/",
+  "scope": "/Lolo/",
+  "display": "standalone",
+  "background_color": "#eaf3ff",
+  "theme_color": "#2b7bff",
+  "icons": []
+}
