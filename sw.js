@@ -30,4 +30,21 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith((
+  event.respondWith((async () => {
+    // حاول من الكاش أولاً (وتجاهل الاستعلام ?v=123)
+    const cached = await caches.match(event.request, { ignoreSearch: true });
+    if (cached) return cached;
+
+    try {
+      // لو في نت خُد من الشبكة
+      return await fetch(event.request);
+    } catch {
+      // بدون نت: رجّع الصفحة الرئيسية للتنقل
+      if (event.request.mode === "navigate") {
+        return caches.match(BASE + "index.html");
+      }
+      // أو رجّع الجذر
+      return caches.match(BASE);
+    }
+  })());
+});
