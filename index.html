@@ -253,6 +253,167 @@ function getLoans(){return JSON.parse(localStorage.getItem('loans')||'{"people":
 function saveLoans(v){localStorage.setItem('loans',JSON.stringify(v))}
 function getSuppliers(){return JSON.parse(localStorage.getItem('suppliers')||'{"people":{}}')}
 function saveSuppliers(v){localStorage.setItem('suppliers',JSON.stringify(v))}
+  <script>
+// ================== PATCH: ربط المصروف بتاجر/مسلف ==================
+
+// تجميع الأسماء للاقترحات
+function refreshBenefLists() {
+  const sup = getSuppliers() || {};
+  const loans = getLoans() || {};
+  const names = {
+    supplier: Object.keys(sup),
+    loan: Object.keys(loans)
+  };
+  // لو عندك input اسمه expBenefName مع datalist id=benefList
+  const dl = document.getElementById('benefList');
+  if (dl) {
+    dl.innerHTML = '';
+    [...new Set([...names.supplier, ...names.loan])].forEach(n=>{
+      const o = document.createElement('option');
+      o.value = n; dl.appendChild(o);
+    });
+  }
+  return names;
+}
+
+// ربط المصروف وتحديث الرصيد
+function linkExpenseToEntity({type, name, amount, date, desc, store}) {
+  amount = Number(amount)||0;
+  if (!name || !amount) return;
+
+  if (type === 'supplier') {
+    const all = getSuppliers() || {};
+    if (!all[name]) all[name] = { balance:0, ledger:[] };
+    all[name].balance = Number(all[name].balance||0) - amount; // تقليل الدين
+    all[name].ledger.push({
+      id: 'sup-pay-' + Date.now(),
+      date, store, kind:'payment-from-store',
+      amount: -amount,
+      note: `سداد من كاش ${store} — ${desc||''}`
+    });
+    saveSuppliers(all);
+  }
+
+  if (type === 'loan') {
+    const all = getLoans() || {};
+    if (!all[name]) all[name] = { balance:0, ledger:[] };
+    all[name].balance = Number(all[name].balance||0) - amount; // إنقاص رصيد المُسلف
+    all[name].ledger.push({
+      id: 'loan-pay-' + Date.now(),
+      date, store, kind:'repay-from-store',
+      amount: -amount,
+      note: `سداد من كاش ${store} — ${desc||''}`
+    });
+    saveLoans(all);
+  }
+}
+
+// إلغاء الربط عند حذف المصروف
+function unlinkExpense({type, name, amount}) {
+  amount = Number(amount)||0;
+  if (!name || !amount) return;
+
+  if (type === 'supplier') {
+    const all = getSuppliers() || {};
+    if (all[name]) {
+      all[name].balance = Number(all[name].balance||0) + amount; // رجع المبلغ
+      all[name].ledger.push({
+        id:'sup-undo-'+Date.now(),
+        date:new Date().toISOString(),
+        kind:'undo-payment',
+        amount:+amount,
+        note:'استرجاع بسبب حذف مصروف'
+      });
+      saveSuppliers(all);
+    }
+  }
+  if (type === 'loan') {
+    const all = getLoans() || {};
+    if (all[name]) {
+      all[name].balance = Number(all[name].balance||0) + amount;
+      all[name].ledger.push({
+        id:'loan-undo-'+Date.now(),
+        date:new Date().toISOString(),
+        kind:'undo-repay',
+        amount:+amount,
+        note:'استرجاع بسبب حذف مصروف'
+      });
+      saveLoans(all);
+    }
+  }
+}
+
+// ---- دمج مع زر "إضافة مصروف" الحالي ----
+// استبدل دالة إضافة المصروف لديك بنسخة تكتب حقول الربط ضمن سجل المصروف:
+function addExpense() {
+  const desc = qs('#expDesc')?.value?.trim() || '';       // وصف المصروف
+  const amt  = Number(qs('#expAmount')?.value || 0);       // المبلغ
+  const pay  = qs('#expPayType')?.value || 'كاش';          // كاش/بنك (إن وُجد)
+  const notes= qs('#expNotes')?.value?.trim() || '';       // ملاحظات
+  const bType= qs('#expBenefType')?.value || '';           // 'supplier' أو 'loan' أو ''
+  const bName= qs('#expBenefName')?.value?.trim() || '';   // اسم التاجر/المُسلف
+  const date = qs('#today')?.value || new Date().toISOString().slice(0,10);
+  const store= currentStore;                               // اسم المحل الحالي
+
+  if (!amt) return alert('ادخل المبلغ.');
+
+  // خزّن المصروف في دفتر المحل مع معلومات الربط
+  const data = getStoreData(store);
+  const row = {
+    id: 'exp-'+Date.now(),
+    date, store,
+    type: 'expense',
+    pay, amount: amt,
+    desc, notes,
+    linkType: (bType==='supplier'||bType==='loan') ? bType : '',
+    linkName: (bType && bName) ? bName : ''
+  };
+  data.ledger = data.ledger || [];
+  data.ledger.push(row);
+  saveStoreData(data, store);
+
+  // لو في ربط، حدّث حساب الجهة فورًا
+  if (row.linkType && row.linkName) {
+    linkExpenseToEntity({
+      type: row.linkType,
+      name: row.linkName,
+      amount: amt,
+      date: date,
+      desc: desc,
+      store: stores[store] || store
+    });
+  }
+
+  // تحديث الواجهة
+  qs('#expDesc').value = '';
+  qs('#expAmount').value = '';
+  qs('#expNotes').value = '';
+  renderLists();
+  toast('تم إضافة المصروف' + (row.linkName?` وخصمه من (${row.linkName})`:''));
+}
+
+// ---- دمج مع حذف المصروف ----
+// داخل دالة حذف السطر (التي تستعملها للمبيعات/المصاريف)
+// أضف هذا الجزء عند حذف مصروف مرتبط:
+function deleteRow(rowId) {
+  const data = getStoreData();
+  const i = (data.ledger||[]).findIndex(r=>r.id===rowId);
+  if (i>-1) {
+    const r = data.ledger[i];
+    if (r.type==='expense' && r.linkType && r.linkName && r.amount) {
+      // استرجاع الخصم
+      unlinkExpense({type:r.linkType, name:r.linkName, amount:r.amount});
+    }
+    data.ledger.splice(i,1);
+    saveStoreData(data);
+    renderLists();
+    toast('تم الحذف');
+  }
+}
+
+// استدعِ هذا مرة عند التحميل لتعبئة قائمة الأسماء:
+document.addEventListener('DOMContentLoaded', refreshBenefLists);
+</script>
 
 /* ===== واجهة وتبويبات ===== */
 function changeStore(){currentStore=qs('#storeSelect').value;renderLists()}
