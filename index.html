@@ -1,66 +1,67 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>نظام المحاسبة — النهائي (أوفلاين)</title>
-<meta name="theme-color" content="#87b9ff"/>
-<style>
-:root{
-  --blue:#2b7bff;       /* أزرق رئيسي */
-  --blue-soft:#eaf3ff;  /* أزرق سماوي فاتح للخلفية */
-  --line:#e5e7eb;
-  --card:#fff;
-  --danger:#dc3545;
-  --ok:#16a34a;
-  --muted:#64748b;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--blue-soft);color:#0f172a}
-header{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-header h1{margin:0;font-size:18px}
-header .sub{opacity:.95;font-size:13px}
-header .owner-badge{margin-top:6px;font-size:14px;color:#eaf5ff;background:rgba(255,255,255,.12);display:inline-block;padding:6px 10px;border-radius:10px}
-main{padding:12px;max-width:1150px;margin:auto;padding-bottom:160px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 6px rgba(0,0,0,.04)}
-h3{margin:6px 0 10px}
-.row{display:flex;flex-wrap:wrap;gap:10px}
-.col{flex:1;min-width:200px}
-label{font-size:13px;color:#111}
-input,select,textarea,button{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff}
-textarea{min-height:70px;resize:vertical}
-button{border:none;cursor:pointer}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:10px 14px;font-size:14px}
-.btn-primary{background:var(--blue);color:#fff}
-.btn-outline{background:#fff;border:1px solid var(--line);color:#111}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-ok{background:var(--ok);color:#fff}
-.hint{font-size:12px;color:var(--muted)}
-.list .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
-.list .item:last-child{border-bottom:none}
-.list .meta{flex:1}
-.kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.kpi .box{background:#f3f7ff;border:1px solid #e3ecff;border-radius:12px;padding:10px;text-align:center}
-.kpi .box b{display:block;font-size:16px}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:14px}
-th{background:#f8fbff}
-.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex}
-.tab{flex:1}
-.tab button{width:100%;background:#fff;border:none;padding:12px 0}
-.tab.active{background:#f0f6ff}
-.tag{display:inline-block;padding:.2rem .5rem;border-radius:999px;background:#eef2ff;border:1px solid #e5e7eb;font-size:12px}
-.subtle{background:#f9fbff;border:1px solid #eef2ff;border-radius:12px;padding:10px;margin-top:8px}
-.separator{height:1px;background:var(--line);margin:8px 0}
-.badge{display:inline-block;padding:.25rem .6rem;border-radius:999px;border:1px solid #dbeafe;background:#eff6ff;font-size:12px}
-@media print{
-  header,nav.tabs,.print-hide{display:none !important}
-  body{background:#fff}
-  .card{box-shadow:none;border:none;padding:0;margin:0}
-  .page{page-break-after:always;margin-bottom:30px}
-}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>نظام المحاسبة — النهائي (أوفلاين)</title>
+  <meta name="theme-color" content="#87b9ff"/>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <style>
+  :root{
+    --blue:#2b7bff;       /* أزرق رئيسي */
+    --blue-soft:#eaf3ff;  /* أزرق سماوي فاتح للخلفية */
+    --line:#e5e7eb;
+    --card:#fff;
+    --danger:#dc3545;
+    --ok:#16a34a;
+    --muted:#64748b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--blue-soft);color:#0f172a}
+  header{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+  header h1{margin:0;font-size:18px}
+  header .sub{opacity:.95;font-size:13px}
+  header .owner-badge{margin-top:6px;font-size:14px;color:#eaf5ff;background:rgba(255,255,255,.12);display:inline-block;padding:6px 10px;border-radius:10px}
+  main{padding:12px;max-width:1150px;margin:auto;padding-bottom:160px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+  h3{margin:6px 0 10px}
+  .row{display:flex;flex-wrap:wrap;gap:10px}
+  .col{flex:1;min-width:200px}
+  label{font-size:13px;color:#111}
+  input,select,textarea,button{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff}
+  textarea{min-height:70px;resize:vertical}
+  button{border:none;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:10px 14px;font-size:14px}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-outline{background:#fff;border:1px solid var(--line);color:#111}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-ok{background:var(--ok);color:#fff}
+  .hint{font-size:12px;color:var(--muted)}
+  .list .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .list .item:last-child{border-bottom:none}
+  .list .meta{flex:1}
+  .kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi .box{background:#f3f7ff;border:1px solid #e3ecff;border-radius:12px;padding:10px;text-align:center}
+  .kpi .box b{display:block;font-size:16px}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:14px}
+  th{background:#f8fbff}
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex}
+  .tab{flex:1}
+  .tab button{width:100%;background:#fff;border:none;padding:12px 0}
+  .tab.active{background:#f0f6ff}
+  .tag{display:inline-block;padding:.2rem .5rem;border-radius:999px;background:#eef2ff;border:1px solid #e5e7eb;font-size:12px}
+  .subtle{background:#f9fbff;border:1px solid #eef2ff;border-radius:12px;padding:10px;margin-top:8px}
+  .separator{height:1px;background:var(--line);margin:8px 0}
+  .badge{display:inline-block;padding:.25rem .6rem;border-radius:999px;border:1px solid #dbeafe;background:#eff6ff;font-size:12px}
+  @media print{
+    header,nav.tabs,.print-hide{display:none !important}
+    body{background:#fff}
+    .card{box-shadow:none;border:none;padding:0;margin:0}
+    .page{page-break-after:always;margin-bottom:30px}
+  }
+  </style>
 </head>
 <body>
 <header class="print-hide">
@@ -70,7 +71,6 @@ th{background:#f8fbff}
 </header>
 
 <main>
-  <!-- شريط أعلى للتحكم العام -->
   <div class="card print-hide">
     <div class="row">
       <div class="col">
@@ -93,7 +93,6 @@ th{background:#f8fbff}
     <div class="hint">تعمل بدون إنترنت — الحفظ تلقائي محليًا. يحتوي على تصدير/استيراد نسخة احتياطية من تبويب “المالك”.</div>
   </div>
 
-  <!-- إدخال -->
   <section class="card" data-tab="input">
     <h3>تسجيل المبيعات</h3>
     <div class="row">
@@ -115,7 +114,6 @@ th{background:#f8fbff}
     <div id="recentExpenses" class="list"></div>
   </section>
 
-  <!-- يومي -->
   <section class="card" data-tab="daily">
     <h3>التقرير اليومي</h3>
     <div class="row print-hide">
@@ -133,7 +131,6 @@ th{background:#f8fbff}
     <div id="dailyWrap"></div>
   </section>
 
-  <!-- فترة / مجمّع -->
   <section class="card" data-tab="range">
     <h3>تقرير فترة / مجمّع</h3>
     <div class="row print-hide">
@@ -146,7 +143,6 @@ th{background:#f8fbff}
     <div id="rangeWrap"></div>
   </section>
 
-  <!-- السلف -->
   <section class="card" data-tab="loans">
     <h3>السُلف (كاش فقط)</h3>
     <div class="row">
@@ -163,7 +159,6 @@ th{background:#f8fbff}
     <div id="loansWrap" class="subtle" style="margin-top:8px"></div>
   </section>
 
-  <!-- التجار -->
   <section class="card" data-tab="suppliers">
     <h3>التُجار</h3>
     <div class="row">
@@ -184,7 +179,6 @@ th{background:#f8fbff}
     <div id="supWrap" class="subtle" style="margin-top:8px"></div>
   </section>
 
-  <!-- صندوق المالك -->
   <section class="card" data-tab="owner">
     <h3>صندوق المالك — كشف فوري وتقرير شهري</h3>
     <div class="row print-hide">
@@ -229,7 +223,7 @@ th{background:#f8fbff}
 </nav>
 
 <script>
-/* ============= أدوات عامة ============= */
+/* أدوات */
 const stores = {store1:"روان بيبي", store2:"جنتل بيبي عبود", store3:"بسطة"};
 let currentStore = "store1";
 const qs = s => document.querySelector(s);
@@ -238,23 +232,19 @@ function todayISO(){ return new Date().toISOString().slice(0,10); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function inRange(iso,from,to){ const d=new Date(iso+"T00:00:00"); return d>=new Date(from+"T00:00:00") && d<=new Date(to+"T00:00:00"); }
 function sum(arr,fn){ return arr.reduce((a,b)=>a+fn(b),0); }
-function fmtDatePretty(iso){const d=new Date(iso+"T00:00:00");const days=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];const pad=n=>String(n).padStart(2,"0");return `${days[d.getDay()]} ${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function fmtDatePretty(iso){const d=new Date(iso+"T00:00:00");const days=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];const p=n=>String(n).padStart(2,"0");return `${days[d.getDay()]} ${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
 
-/* ============= تخزين ============= */
-function getStoreData(store=currentStore){
-  return JSON.parse(localStorage.getItem(store) || '{"sales":[],"expenses":[]}');
-}
-function saveStoreData(data,store=currentStore){
-  localStorage.setItem(store, JSON.stringify(data));
-}
+/* تخزين */
+function getStoreData(store=currentStore){ return JSON.parse(localStorage.getItem(store) || '{"sales":[],"expenses":[]}'); }
+function saveStoreData(data,store=currentStore){ localStorage.setItem(store, JSON.stringify(data)); }
 function getOwner(){ return JSON.parse(localStorage.getItem('owner_fund') || '{"ledger":[]}'); }
 function saveOwner(v){ localStorage.setItem('owner_fund', JSON.stringify(v)); }
-function getLoans(){ return JSON.parse(localStorage.getItem('loans') || '{"people":{}}'); }   // people[name]={balance, history[]}
+function getLoans(){ return JSON.parse(localStorage.getItem('loans') || '{"people":{}}'); }
 function saveLoans(v){ localStorage.setItem('loans', JSON.stringify(v)); }
-function getSuppliers(){ return JSON.parse(localStorage.getItem('suppliers') || '{"people":{}}'); } // people[name]={balance, history[]}
+function getSuppliers(){ return JSON.parse(localStorage.getItem('suppliers') || '{"people":{}}'); }
 function saveSuppliers(v){ localStorage.setItem('suppliers', JSON.stringify(v)); }
 
-/* ============= واجهة ============= */
+/* واجهة */
 function changeStore(){ currentStore = qs('#storeSelect').value; renderLists(); }
 function showTab(name){
   qsa('[data-tab]').forEach(el => el.style.display = (el.getAttribute('data-tab')===name ? 'block':'none'));
@@ -267,7 +257,7 @@ function showTab(name){
 }
 function printSection(){ window.print(); }
 
-/* ============= إدخال (مبيعات/مصاريف) ============= */
+/* إدخال */
 function addSale(){
   const a = parseFloat(qs('#saleAmount').value||'0');
   const t = qs('#saleType').value;
@@ -315,8 +305,8 @@ function renderLists(){
     </div>`).join('') : '<div class="hint">لا توجد مصاريف بعد</div>';
 }
 
-/* ============= التقارير اليومية/الفترة ============= */
-function calcTotals(entries, typeKey='type'){
+/* تقارير */
+function calcTotals(entries,typeKey='type'){
   const cs = entries.filter(x=>x[typeKey]==='كاش').reduce((a,b)=>a+Number(b.amount||0),0);
   const bs = entries.filter(x=>x[typeKey]==='بنك').reduce((a,b)=>a+Number(b.amount||0),0);
   return {cs,bs};
@@ -385,7 +375,6 @@ function generateRange(){
         </div>
       </div>`;
   } else {
-    // تقرير منفصل لكل محل
     let html='';
     shops.forEach(st=>{
       const d=getStoreData(st);
@@ -415,7 +404,7 @@ function generateRange(){
   }
 }
 
-/* ============= تسوية اليوم لصندوق المالك ============= */
+/* تسوية اليوم لصندوق المالك */
 function updateOwnerBalanceUI(){
   const O=getOwner();
   const ins = O.ledger.filter(x=>x.type==='in').reduce((a,b)=>a+Number(b.amount||0),0);
@@ -449,7 +438,7 @@ function settleDay(){
   }
 }
 
-/* ============= السلف (كاش فقط) ============= */
+/* السُلف */
 function renderLoans(){
   const L=getLoans();
   const names=Object.keys(L.people);
@@ -463,7 +452,7 @@ function addLoan(){
   if(!name||!amt){ alert('أدخل اسم ومبلغ صحيح'); return; }
   const L=getLoans();
   if(!L.people[name]) L.people[name]={balance:0,history:[]};
-  L.people[name].balance += amt; // سلفة واردة للمحل = كاش داخلي
+  L.people[name].balance += amt;
   L.people[name].history.push({id:uid(),date:todayISO(),type:'in',amount:amt,note:'سلفة للمحل'});
   saveLoans(L);
   qs('#loanPerson').value=''; qs('#loanAmount').value='';
@@ -480,13 +469,11 @@ function payLoan(){
   L.people[name].history.push({id:uid(),date:todayISO(),type:'out',amount:amt,note:`سداد من ${src==='store'?'كاش المحل':'صندوق المالك'}`});
   saveLoans(L);
 
-  // أثر مالي: من كاش المحل = يسجل كمصروف كاش باسم "سداد سلفة"
   if(src==='store'){
     const d=getStoreData();
     d.expenses.push({id:uid(),date:todayISO(),type:'كاش',desc:'سداد سلفة',amount:amt,note:name});
     saveStoreData(d);
   }else{
-    // من صندوق المالك = خصم مباشر من صندوق المالك
     const O=getOwner();
     O.ledger.push({id:uid(),date:todayISO(),type:'out',amount:amt,note:`سداد سلفة: ${name}`});
     saveOwner(O);
@@ -496,7 +483,7 @@ function payLoan(){
   renderLoans(); renderLists(); renderOwnerStatement();
 }
 
-/* ============= التجار ============= */
+/* التجار */
 function renderSuppliers(){
   const S=getSuppliers();
   const names=Object.keys(S.people);
@@ -510,7 +497,7 @@ function addSupplierInvoice(){
   if(!name||!amt){ alert('أدخل اسم وقيمة فاتورة صحيحة'); return; }
   const S=getSuppliers();
   if(!S.people[name]) S.people[name]={balance:0,history:[]};
-  S.people[name].balance += amt; // تزيد مديونية التاجر
+  S.people[name].balance += amt;
   S.people[name].history.push({id:uid(),date:todayISO(),type:'invoice',amount:amt,note:'فاتورة مشتريات'});
   saveSuppliers(S);
   qs('#supName').value=''; qs('#supInvoice').value='';
@@ -527,7 +514,6 @@ function paySupplier(){
   S.people[name].history.push({id:uid(),date:todayISO(),type:'pay',amount:amt,note:`دفعة من ${src==='store'?'كاش المحل':(src==='owner'?'صندوق المالك':'البنك')}`});
   saveSuppliers(S);
 
-  // أثر مالي محاسبي
   if(src==='store'){
     const d=getStoreData();
     d.expenses.push({id:uid(),date:todayISO(),type:'كاش',desc:`دفعة تاجر (${name})`,amount:amt,note:'من كاش المحل'});
@@ -538,8 +524,7 @@ function paySupplier(){
     O.ledger.push({id:uid(),date:todayISO(),type:'out',amount:amt,note:`دفعة تاجر (${name})`});
     saveOwner(O);
     updateOwnerBalanceUI();
-  }else{ /* bank */ 
-    // لا يؤثر على صندوق المالك أو كاش المحل، ويمكن إضافته لمعلومة فقط:
+  }else{
     const d=getStoreData();
     d.expenses.push({id:uid(),date:todayISO(),type:'بنك',desc:`دفعة تاجر (${name})`,amount:amt,note:'من البنك'});
     saveStoreData(d);
@@ -549,7 +534,7 @@ function paySupplier(){
   renderSuppliers(); renderOwnerStatement();
 }
 
-/* ============= صندوق المالك + كشف + شهري ============= */
+/* صندوق المالك + كشف + شهري */
 function renderOwnerStatement(){
   const from=(qs('#of_from').value||todayISO().slice(0,8)+'01');
   const to  =(qs('#of_to').value  ||todayISO());
@@ -576,7 +561,6 @@ function generateMonthly(){
   const ym = (qs('#m_month').value || todayISO().slice(0,7)); // YYYY-MM
   const from = ym+'-01';
   const to   = ym+'-31';
-  // كل المحلات
   let allSales=[], allExp=[];
   Object.keys(stores).forEach(st=>{
     const d=getStoreData(st);
@@ -585,8 +569,6 @@ function generateMonthly(){
   });
   const ts=calcTotals(allSales), te=calcTotals(allExp);
   const net=(ts.cs+ts.bs)-(te.cs+te.bs);
-
-  // صندوق المالك خلال الشهر
   const O=getOwner();
   const rows=O.ledger.filter(x=>x.date.slice(0,7)===ym);
   const ins = sum(rows,x=>x.type==='in'?Number(x.amount||0):0);
@@ -614,7 +596,7 @@ function generateMonthly(){
     </div>`;
 }
 
-/* ============= نسخ احتياطي ============= */
+/* نسخ احتياطي */
 function exportBackup(){
   const payload={
     version:"final-1",
@@ -622,49 +604,4 @@ function exportBackup(){
     stores:{
       store1:JSON.parse(localStorage.getItem('store1')||'{"sales":[],"expenses":[]}'),
       store2:JSON.parse(localStorage.getItem('store2')||'{"sales":[],"expenses":[]}'),
-      store3:JSON.parse(localStorage.getItem('store3')||'{"sales":[],"expenses":[]}'),
-    },
-    loans:getLoans(),
-    suppliers:getSuppliers(),
-    owner_fund:getOwner()
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  const ts=new Date(); const pad=n=>String(n).padStart(2,'0');
-  a.href=URL.createObjectURL(blob);
-  a.download=`backup-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-function importBackup(file){
-  if(!file){ alert("اختر ملف النسخة الاحتياطية"); return; }
-  const r=new FileReader();
-  r.onload=e=>{
-    try{
-      const data=JSON.parse(e.target.result);
-      if(!data||!data.stores) throw new Error("ملف غير صالح");
-      localStorage.setItem('store1',JSON.stringify(data.stores.store1||{"sales":[],"expenses":[]}));
-      localStorage.setItem('store2',JSON.stringify(data.stores.store2||{"sales":[],"expenses":[]}));
-      localStorage.setItem('store3',JSON.stringify(data.stores.store3||{"sales":[],"expenses":[]}));
-      localStorage.setItem('owner_fund',JSON.stringify(data.owner_fund||{"ledger":[]}));
-      localStorage.setItem('loans',JSON.stringify(data.loans||{"people":{}}));
-      localStorage.setItem('suppliers',JSON.stringify(data.suppliers||{"people":{}}));
-      alert("تم الاستيراد بنجاح ✅");
-      renderLists(); renderLoans(); renderSuppliers(); renderOwnerStatement(); updateOwnerBalanceUI();
-    }catch(err){ alert("تعذر الاستيراد: "+err.message); }
-  };
-  r.readAsText(file);
-}
-
-/* ============= تهيئة ============= */
-document.addEventListener('DOMContentLoaded',()=>{
-  const t=todayISO();
-  ['todayInput','r_date','of_from','f_from'].forEach(id=>{const x=qs('#'+id); if(x) x.value=t;});
-  const x1=qs('#of_to'); if(x1) x1.value=t;
-  const x2=qs('#f_to');  if(x2) x2.value=t;
-  showTab('input');
-  renderLists(); renderLoans(); renderSuppliers(); renderOwnerStatement(); updateOwnerBalanceUI();
-});
-</script>
-</body>
-</html>e
+      store3:JSON.parse(localStorage.getItem('store3')||'{"sales":[],"expenses":[]}
