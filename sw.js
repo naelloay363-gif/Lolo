@@ -1,5 +1,5 @@
 // sw.js — قوي ومرن لمجلدات GitHub Pages الفرعية
-const VERSION = "v8"; // زِد الرقم كل ما تحدث ملفاتك
+const VERSION = "v3"; // زِد الرقم كل ما تحدث ملفاتك
 const BASE = new URL(self.registration.scope).pathname; // مثال: "/Lolo/"
 const CACHE_NAME = `lolo-cache-${VERSION}`;
 
