@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>نظام المحاسبة</title>
+<title>نظام المحاسبة — نسخة الديون + تحسينات المالك</title>
 <meta name="theme-color" content="#2b7bff"/>
 <style>
 :root{--blue:#2b7bff;--blue-soft:#eaf3ff;--line:#e5e7eb;--card:#fff;--danger:#dc3545;--ok:#16a34a;--muted:#64748b}
@@ -198,6 +198,30 @@ th{background:#f8fbff}
     <div id="supWrap" class="subtle" style="margin-top:8px"></div>
   </section>
 
+  <!-- الديون (عملاء) -->
+  <section class="card" data-tab="debts">
+    <h3>الديون (عملاء)</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="debtorName" placeholder="اسم العميل"></div>
+      <div class="col"><input type="number" id="debtAmount" placeholder="قيمة الدين (+)"></div>
+      <div class="col"><input type="text" id="debtNote" placeholder="ملاحظة (اختياري)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addDebt()">➕ تسجيل دين</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input type="text" id="debtPayName" list="debtList" placeholder="اختر/اكتب الاسم للسداد"></div>
+      <datalist id="debtList"></datalist>
+      <div class="col"><input type="number" id="debtPayAmount" placeholder="مبلغ السداد (−)"></div>
+      <div class="col">
+        <select id="debtPayMethod">
+          <option value="كاش">كاش (يزيد مبيعات الكاش)</option>
+          <option value="بنك">بنك (يزيد مبيعات البنك)</option>
+        </select>
+      </div>
+      <div class="col"><button class="btn btn-primary" onclick="payDebt()">💰 تسجيل سداد دين</button></div>
+    </div>
+    <div id="debtsWrap" class="subtle" style="margin-top:8px"></div>
+  </section>
+
   <!-- صندوق المالك -->
   <section class="card" data-tab="owner">
     <h3>صندوق المالك</h3>
@@ -238,6 +262,7 @@ th{background:#f8fbff}
   <div class="tab"><button onclick="showTab('range')">فترة/مجمّع</button></div>
   <div class="tab"><button onclick="showTab('loans')">سُلف</button></div>
   <div class="tab"><button onclick="showTab('suppliers')">تُجار</button></div>
+  <div class="tab"><button onclick="showTab('debts')">الديون</button></div>
   <div class="tab"><button onclick="showTab('owner')">المالك</button></div>
 </nav>
 
@@ -259,14 +284,18 @@ function getSuppliers(){return JSON.parse(localStorage.getItem('suppliers')||'{"
 function saveSuppliers(v){localStorage.setItem('suppliers',JSON.stringify(v))}
 function getOwner(){return JSON.parse(localStorage.getItem('owner_fund')||'{"ledger":[]}')}
 function saveOwner(v){localStorage.setItem('owner_fund',JSON.stringify(v))}
+function getDebts(){return JSON.parse(localStorage.getItem('debts')||'{"people":{}}')}
+function saveDebts(v){localStorage.setItem('debts',JSON.stringify(v))}
 
 /* اقتراحات أسماء ديناميكية */
 function supplierNames(){const S=getSuppliers();return S.people?Object.keys(S.people):[]}
 function loanNames(){const L=getLoans();return L.people?Object.keys(L.people):[]}
+function debtorNames(){const D=getDebts();return D.people?Object.keys(D.people):[]}
 function refreshNameLists(){
   const dl=qs('#benefList'); if(dl){const names=[...new Set([...supplierNames(),...loanNames()])]; dl.innerHTML=names.map(n=>`<option value="${n}">`).join('')}
   const dl2=qs('#loanList'); if(dl2){dl2.innerHTML=loanNames().map(n=>`<option value="${n}">`).join('')}
   const dl3=qs('#supList'); if(dl3){dl3.innerHTML=supplierNames().map(n=>`<option value="${n}">`).join('')}
+  const dl4=qs('#debtList'); if(dl4){dl4.innerHTML=debtorNames().map(n=>`<option value="${n}">`).join('')}
 }
 qs('#expenseBenefType').addEventListener('change',()=>{
   const type=qs('#expenseBenefType').value, dl=qs('#benefList'); if(!dl)return;
@@ -278,10 +307,11 @@ qs('#expenseBenefType').addEventListener('change',()=>{
 function changeStore(){currentStore=qs('#storeSelect').value;renderAll()}
 function showTab(name){
   qsa('[data-tab]').forEach(el=>el.style.display=(el.getAttribute('data-tab')===name?'block':'none'));
-  const order=['input','daily','range','loans','suppliers','owner'];
+  const order=['input','daily','range','loans','suppliers','debts','owner'];
   qsa('.tabs .tab').forEach((t,i)=>t.classList.toggle('active',order[i]===name));
   if(name==='loans') renderLoans();
   if(name==='suppliers') renderSuppliers();
+  if(name==='debts') renderDebts();
   if(name==='owner') {renderOwnerStatement(); updateOwnerBalanceUI();}
 }
 function printSection(){window.print()}
@@ -375,12 +405,10 @@ function addLoan(){
   if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
   const L=getLoans(); if(!L.people) L.people={};
   if(!L.people[name]) L.people[name]={balance:0,history:[]};
-  const saleId=uid(); // لربطها بزيادة الكاش
-  // زيد رصيد المسلف
+  const saleId=uid();
   L.people[name].balance += amt;
   L.people[name].history.push({id:uid(), date:todayISO(), type:'in', amount:amt, note:'سلفة للمحل', linkedSaleId:saleId});
   saveLoans(L);
-  // زيد كاش المحل (يُسجَّل كمبيع كاش بملاحظة "سُلفة من (فلان)")
   const d=getStoreData();
   d.sales.push({id:saleId,date:todayISO(),type:'كاش',amount:amt,note:`سُلفة من (${name})`});
   saveStoreData(d);
@@ -408,14 +436,14 @@ function deleteLoanHistory(name, histId){
   const L=getLoans(); if(!L.people||!L.people[name]) return;
   const i=(L.people[name].history||[]).findIndex(h=>h.id===histId); if(i===-1) return;
   const rec=L.people[name].history[i];
-  if(rec.type==='in'){ // كانت سُلفة → أنقص الرصيد وألغِ البيع المرتبط (زيادة الكاش)
+  if(rec.type==='in'){
     L.people[name].balance -= Number(rec.amount||0);
     if(rec.linkedSaleId){
       const d=getStoreData(); const j=(d.sales||[]).findIndex(s=>s.id===rec.linkedSaleId);
       if(j>-1){ d.sales.splice(j,1); saveStoreData(d); renderLists?.(); }
     }
   }
-  if(rec.type==='out'){ // كانت سداد → رجّع الرصيد فقط (لا قيد عكسي للمصاريف هنا)
+  if(rec.type==='out'){
     L.people[name].balance += Number(rec.amount||0);
   }
   L.people[name].history.splice(i,1); saveLoans(L); renderLoans();
@@ -426,7 +454,7 @@ function deleteLoanPerson(name){
   const L=getLoans(); if(L.people && L.people[name]){ delete L.people[name]; saveLoans(L); renderLoans(); refreshNameLists(); alert('تم الحذف بنجاح'); }
 }
 
-/* التجّار (مع حذف الشخص) */
+/* التجّار */
 function renderSuppliers(){
   const S=getSuppliers(), names=Object.keys(S.people||{});
   if(!names.length){qs('#supWrap').innerHTML='<div class="hint">لا يوجد تجار بعد</div>';refreshNameLists?.();return}
@@ -472,6 +500,74 @@ function deleteSupplierPerson(name){
   const S=getSuppliers(); if(S.people && S.people[name]){ delete S.people[name]; saveSuppliers(S); renderSuppliers(); refreshNameLists(); alert('تم الحذف بنجاح'); }
 }
 
+/* الديون (عملاء) — دين + سداد ينعكس على المبيعات */
+function renderDebts(){
+  const D=getDebts(), names=Object.keys(D.people||{});
+  if(!names.length){qs('#debtsWrap').innerHTML='<div class="hint">لا توجد ديون مسجلة</div>';refreshNameLists?.();return}
+  const rows=names.map(n=>`<tr>
+      <td>${n}</td>
+      <td>${D.people[n].balance||0}</td>
+      <td><button class="btn btn-danger" onclick="deleteDebtor('${n.replace(/'/g,"\\'")}')">🗑 حذف</button></td>
+    </tr>`).join('');
+  const allTx=[]; names.forEach(n=>{(D.people[n].history||[]).slice(-50).forEach(h=>allTx.push({name:n,...h}))}); allTx.sort((a,b)=>(a.date||'').localeCompare(b.date||'')); allTx.reverse();
+  const txRows = allTx.length ? allTx.map(h=>{
+    const kind = h.type==='debt' ? 'تسجيل دين (+)' : (h.type==='pay' ? `سداد دين (−)` : (h.type==='revert' ? 'إلغاء/استرجاع' : (h.type||'')));
+    const btn  = `<button class="btn btn-danger" onclick="deleteDebtHistory('${h.name.replace(/'/g,"\\'")}','${h.id||''}')">حذف القيد</button>`;
+    return `<tr><td>${h.date||''}</td><td>${h.name}</td><td>${kind}</td><td>${h.amount||0}</td><td>${h.note||''}</td><td>${btn}</td></tr>`;
+  }).join('') : `<tr><td colspan="6">لا توجد حركات حديثة</td></tr>`;
+  qs('#debtsWrap').innerHTML = `
+    <h4>أرصدة العملاء</h4>
+    <table><thead><tr><th>العميل</th><th>الرصيد (مدين)</th><th>إجراء</th></tr></thead><tbody>${rows}</tbody></table>
+    <h4 style="margin-top:12px">آخر الحركات</h4>
+    <table><thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th><th>إجراء</th></tr></thead>
+    <tbody>${txRows}</tbody></table>`;
+  refreshNameLists();
+}
+function addDebt(){
+  const name=(qs('#debtorName').value||'').trim(), amt=parseFloat(qs('#debtAmount').value||'0'), note=(qs('#debtNote').value||'').trim();
+  if(!name||!amt){alert('أدخل اسم وقيمة دين صحيحة');return}
+  const D=getDebts(); if(!D.people) D.people={};
+  if(!D.people[name]) D.people[name]={balance:0,history:[]};
+  D.people[name].balance += amt;
+  D.people[name].history.push({id:uid(),date:todayISO(),type:'debt',amount:amt,note:note||'دين مشتريات'});
+  saveDebts(D);
+  qs('#debtorName').value=''; qs('#debtAmount').value=''; qs('#debtNote').value='';
+  renderDebts();
+}
+function payDebt(){
+  const name=(qs('#debtPayName').value||'').trim(), amt=parseFloat(qs('#debtPayAmount').value||'0'), method=qs('#debtPayMethod').value;
+  if(!name||!amt){alert('أدخل اسم ومبلغ سداد صحيح');return}
+  const D=getDebts(); if(!D.people||!D.people[name]){alert('لا يوجد هذا العميل');return}
+  D.people[name].balance -= amt;
+  const saleId=uid(); // ربط مع المبيعات
+  D.people[name].history.push({id:uid(),date:todayISO(),type:'pay',amount:amt,note:`سداد دين (${method})`, linkedSaleId:saleId});
+  saveDebts(D);
+  const d=getStoreData();
+  d.sales.push({id:saleId,date:todayISO(),type:method,amount:amt,note:`سداد دين (${name})`});
+  saveStoreData(d);
+  qs('#debtPayName').value=''; qs('#debtPayAmount').value=''; renderDebts(); renderLists();
+}
+function deleteDebtHistory(name, histId){
+  const D=getDebts(); if(!D.people||!D.people[name]) return;
+  const i=(D.people[name].history||[]).findIndex(h=>h.id===histId); if(i===-1) return;
+  const rec=D.people[name].history[i];
+  if(rec.type==='debt'){ // إلغاء تسجيل دين
+    D.people[name].balance -= Number(rec.amount||0);
+  }
+  if(rec.type==='pay'){ // إلغاء سداد دين -> رجوع الرصيد + حذف بيع مرتبط
+    D.people[name].balance += Number(rec.amount||0);
+    if(rec.linkedSaleId){
+      const d=getStoreData(); const j=(d.sales||[]).findIndex(s=>s.id===rec.linkedSaleId);
+      if(j>-1){ d.sales.splice(j,1); saveStoreData(d); renderLists?.(); }
+    }
+  }
+  D.people[name].history.splice(i,1); saveDebts(D); renderDebts();
+}
+function deleteDebtor(name){
+  if(!confirm(`هل أنت متأكد من حذف العميل "${name}" وجميع معاملاته؟ لا يمكن التراجع.`)) return;
+  const D=getDebts(); if(D.people && D.people[name]){ delete D.people[name]; saveDebts(D); renderDebts(); refreshNameLists(); alert('تم الحذف بنجاح'); }
+}
+
 /* تقارير المحلات */
 function calcTotals(entries,typeKey='type'){const cs=entries.filter(x=>x[typeKey]==='كاش').reduce((a,b)=>a+Number(b.amount||0),0);const bs=entries.filter(x=>x[typeKey]==='بنك').reduce((a,b)=>a+Number(b.amount||0),0);return{cs,bs}}
 function fmtDatePretty(iso){const d=new Date(iso+"T00:00:00");const days=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];const pad=n=>String(n).padStart(2,"0");return `${days[d.getDay()]} ${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
@@ -480,9 +576,27 @@ function generateDaily(){
   const d=JSON.parse(localStorage.getItem(store)||'{"sales":[],"expenses":[]}');
   const s=d.sales.filter(x=>x.date===date), e=d.expenses.filter(x=>x.date===date);
   const ts=calcTotals(s), te=calcTotals(e);
+  const totalCashSales = ts.cs, totalBankSales = ts.bs;
   const salesRows=s.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.amount}</td><td>${x.note||''}</td></tr>`).join('')||'<tr><td colspan="4">لا يوجد مبيعات</td></tr>';
   const expRows=e.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.desc}</td><td>${x.amount}</td><td>${(x.benefType&&x.benefName)?(x.benefType==='supplier'?'تاجر: ':'مسلف: ')+x.benefName:(x.note||'')}</td></tr>`).join('')||'<tr><td colspan="5">لا يوجد مصاريف</td></tr>';
-  qs('#dailyWrap').innerHTML=`<div class="page"><h2 style="margin:0 0 8px">التقرير اليومي — ${stores[store]}</h2><div class="hint">تاريخ التقرير: <b>${fmtDatePretty(date)}</b> — تاريخ الطباعة: <b>${fmtDatePretty(todayISO())}</b></div><div class="separator"></div><div class="kpi"><div class="box"><b>${ts.cs}</b>مبيعات كاش</div><div class="box"><b>${ts.bs}</b>مبيعات بنك</div><div class="box"><b>${te.cs}</b>مصروفات كاش</div><div class="box"><b>${te.bs}</b>مصروفات بنك</div></div><h3>تفاصيل المبيعات</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${salesRows}</tbody></table><h3>تفاصيل المصاريف</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>ملاحظات/ربط</th></tr></thead><tbody>${expRows}</tbody></table><div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end"><div><b>الصافي:</b> ${(ts.cs+ts.bs)-(te.cs+te.bs)}</div></div><div style="margin-top:40px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض ____________________</div><div>توقيع المدير المالي: ____________________</div></div></div>`;
+  qs('#dailyWrap').innerHTML=`<div class="page">
+    <h2 style="margin:0 0 8px">التقرير اليومي — ${stores[store]}</h2>
+    <div class="hint">تاريخ التقرير: <b>${fmtDatePretty(date)}</b> — تاريخ الطباعة: <b>${fmtDatePretty(todayISO())}</b></div>
+    <div class="separator"></div>
+    <div class="kpi">
+      <div class="box"><b>${ts.cs}</b>مبيعات كاش</div>
+      <div class="box"><b>${ts.bs}</b>مبيعات بنك</div>
+      <div class="box"><b>${te.cs}</b>مصروفات كاش</div>
+      <div class="box"><b>${te.bs}</b>مصروفات بنك</div>
+    </div>
+    <div class="subtle" style="margin-top:10px"><b>ملخص المبيعات:</b> كاش = <b>${totalCashSales}</b> — بنك = <b>${totalBankSales}</b></div>
+    <h3>تفاصيل المبيعات</h3>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${salesRows}</tbody></table>
+    <h3>تفاصيل المصاريف</h3>
+    <table><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>ملاحظات/ربط</th></tr></thead><tbody>${expRows}</tbody></table>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end"><div><b>الصافي:</b> ${(ts.cs+ts.bs)-(te.cs+te.bs)}</div></div>
+    <div style="margin-top:40px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض ____________________</div><div>توقيع المدير المالي: ____________________</div></div>
+  </div>`;
 }
 function generateRange(){
   const from=qs('#f_from').value||todayISO().slice(0,8)+'01', to=qs('#f_to').value||todayISO(), mode=qs('#f_mode').value||'per';
@@ -523,15 +637,19 @@ function ownerWithdraw(){
 function deleteOwnerEntry(id){
   const O=getOwner(); const i=(O.ledger||[]).findIndex(x=>x.id===id); if(i===-1) return;
   const e=O.ledger[i];
-  if(e.linked){ alert('هذا القيد مرتبط بدفعة تاجر/سلفة من الصندوق ولا يمكن حذفه للحفاظ على الاتساق.'); return; }
-  if(!confirm('حذف هذا القيد من صندوق المالك؟')) return;
+  // السماح بحذف المرتبط مع تحذير
+  if(e.linked){
+    if(!confirm('هذا القيد مرتبط بدفعة تاجر/سلفة من الصندوق. حذفه لن يُرجع الدفعة تلقائيًا. هل تريد المتابعة؟')) return;
+  }else{
+    if(!confirm('هل تريد حذف هذا القيد من صندوق المالك؟')) return;
+  }
   O.ledger.splice(i,1); saveOwner(O); updateOwnerBalanceUI(); renderOwnerStatement();
 }
 function renderOwnerStatement(){
   const from=(qs('#of_from').value||todayISO().slice(0,8)+'01'), to=(qs('#of_to').value||todayISO());
   const O=getOwner(); const rows=(O.ledger||[]).filter(x=>inRange(x.date,from,to));
   const ins=sum(rows,x=>x.type==='in'?Number(x.amount||0):0), outs=sum(rows,x=>x.type==='out'?Number(x.amount||0):0);
-  const tbl=rows.length?rows.map(e=>`<tr><td>${e.date}</td><td>${e.type==='in'?'تحصيل':'صرف'}</td><td>${e.amount}</td><td>${e.note||''}</td><td>${e.linked?'<span class="hint">مرتبط</span>':`<button class="btn btn-danger" onclick="deleteOwnerEntry('${e.id}')">حذف</button>`}</td></tr>`).join(''):`<tr><td colspan="5">لا توجد حركات</td></tr>`;
+  const tbl=rows.length?rows.map(e=>`<tr><td>${e.date}</td><td>${e.type==='in'?'تحصيل':'صرف'}</td><td>${e.amount}</td><td>${e.note||''}</td><td><button class="btn btn-danger" onclick="deleteOwnerEntry('${e.id}')">حذف</button></td></tr>`).join(''):`<tr><td colspan="5">لا توجد حركات</td></tr>`;
   qs('#ownerWrap').innerHTML=`<div class="page"><h2 style="margin:0 0 8px">كشف صندوق المالك</h2><div class="hint">الفترة: <b>${from}</b> → <b>${to}</b> — تاريخ الطباعة: <b>${todayISO()}</b></div><div class="separator"></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الملاحظة</th><th>إجراء</th></tr></thead><tbody>${tbl}</tbody></table><div style="margin-top:8px"><b>تحصيل:</b> ${ins} — <b>صرف:</b> ${outs} — <b>الرصيد:</b> ${ins-outs}</div><div style="margin-top:40px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض ____________________</div><div>توقيع المدير المالي: ____________________</div></div></div>`;
 }
 
@@ -559,16 +677,16 @@ function renderExpensesList(){
   }).join(''):'<div class="hint">لا توجد مصاريف بعد</div>';
 }
 function renderLists(){renderSalesList();renderExpensesList()}
-function renderAll(){renderLists();renderLoans();renderSuppliers();updateOwnerBalanceUI();refreshNameLists()}
+function renderAll(){renderLists();renderLoans();renderSuppliers();renderDebts();updateOwnerBalanceUI();refreshNameLists()}
 document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
 
 /* نسخ احتياطي */
 function exportBackup(){
-  const payload={version:"final-all-in-one",at:new Date().toISOString(),
+  const payload={version:"final-debts-owner-delete",at:new Date().toISOString(),
     stores:{store1:JSON.parse(localStorage.getItem('store1')||'{"sales":[],"expenses":[]}'),
             store2:JSON.parse(localStorage.getItem('store2')||'{"sales":[],"expenses":[]}'),
             store3:JSON.parse(localStorage.getItem('store3')||'{"sales":[],"expenses":[]}')},
-    loans:getLoans(),suppliers:getSuppliers(),owner_fund:getOwner()};
+    loans:getLoans(),suppliers:getSuppliers(),debts:getDebts(),owner_fund:getOwner()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const a=document.createElement("a"); const ts=new Date(); const pad=n=>String(n).padStart(2,'0');
   a.href=URL.createObjectURL(blob); a.download=`backup-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
@@ -586,6 +704,7 @@ function importBackup(file){
     localStorage.setItem('owner_fund',JSON.stringify(data.owner_fund||{"ledger":[]}));
     localStorage.setItem('loans',JSON.stringify(data.loans||{"people":{}}));
     localStorage.setItem('suppliers',JSON.stringify(data.suppliers||{"people":{}}));
+    localStorage.setItem('debts',JSON.stringify(data.debts||{"people":{}}));
     renderAll(); renderOwnerStatement();
   }catch(err){alert("تعذر الاستيراد: "+err.message)}};
   r.readAsText(file);
@@ -598,6 +717,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   const x1=qs('#of_to'); if(x1) x1.value=t; const x2=qs('#f_to'); if(x2) x2.value=t;
   showTab('input'); renderAll(); renderOwnerStatement();
 });
+</script>
+
+<script>
+/* Service Worker (اختياري لو عندك sw.js في الجذر) */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js")
+      .then(()=>console.log("SW✅"))
+      .catch(e=>console.error("SW❌",e));
+  });
+}
 </script>
 </body>
 </html>
