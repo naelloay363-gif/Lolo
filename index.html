@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>نظام المحاسبة</title>
+<meta name="theme-color" content="#2b7bff"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<style>
+:root{--blue:#2b7bff;--blue-soft:#eaf3ff;--line:#e5e7eb;--card:#fff;--danger:#dc3545;--ok:#16a34a;--muted:#64748b}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Tajawal,Segoe UI,Tahoma,Arial,sans-serif;background:var(--blue-soft);color:#0f172a}
+header{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+header h1{margin:0;font-size:18px}
+header .owner-badge{margin-top:6px;font-size:14px;color:#eaf5ff;background:rgba(255,255,255,.12);display:inline-block;padding:6px 10px;border-radius:10px}
+main{padding:12px;max-width:1200px;margin:auto;padding-bottom:160px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+h3{margin:6px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.col{flex:1;min-width:190px}
+label{font-size:13px;color:#111}
+input,select,textarea,button{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff}
+textarea{min-height:70px;resize:vertical}
+button{border:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:10px 14px;font-size:14px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-outline{background:#fff;border:1px solid var(--line);color:#111}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ok{background:var(--ok);color:#fff}
+.hint{font-size:12px;color:var(--muted)}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.list .item:last-child{border-bottom:none}
+.list .meta{flex:1}
+.kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi .box{background:#f3f7ff;border:1px solid #e3ecff;border-radius:12px;padding:10px;text-align:center}
+.kpi .box b{display:block;font-size:16px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:14px}
+th{background:#f8fbff}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex}
+.tab{flex:1}
+.tab button{width:100%;background:#fff;border:none;padding:12px 0}
+.tab.active{background:#f0f6ff}
+.tag{display:inline-block;padding:.2rem .5rem;border-radius:999px;background:#eef2ff;border:1px solid #e5e7eb;font-size:12px}
+.subtle{background:#f9fbff;border:1px solid #eef2ff;border-radius:12px;padding:10px;margin-top:8px}
+.separator{height:1px;background:var(--line);margin:8px 0}
+h2.section{margin:0 0 8px}
+@media print{header,nav.tabs,.print-hide{display:none!important} body{background:#fff} .card{box-shadow:none;border:none;padding:0;margin:0} .page{page-break-after:always;margin-bottom:30px}}
+</style>
+</head>
+<body>
+<header class="print-hide">
+  <h1>نظام المحاسبة</h1>
+  <div class="owner-badge">رصيد صندوق المالك: <b id="ownerBalanceVal">0</b></div>
+</header>
+
+<main>
+  <!-- إعدادات سريعة + تسوية مجمعة -->
+  <div class="card print-hide">
+    <div class="row">
+      <div class="col">
+        <label>المحل النشط</label>
+        <select id="storeSelect" onchange="changeStore()">
+          <option value="store1">روان بيبي</option>
+          <option value="store2">جنتل بيبي عبود</option>
+          <option value="store3">بسطة</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>تاريخ اليوم</label>
+        <input type="date" id="todayInput"/>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="settleDay()">تسوية اليوم للمحل النشط</button>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-outline" onclick="previewAllStores()">👁️ معاينة تحصيل كل محل (اليوم)</button>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-ok" onclick="settleAllStores()">💼 تسوية مجمّعة (كل المحلات)</button>
+      </div>
+    </div>
+    <div class="hint">حفظ تلقائي محلي + يعمل أوفلاين مع manifest/sw.js.</div>
+  </div>
+
+  <!-- إدخال -->
+  <section class="card" data-tab="input">
+    <h3>تسجيل المبيعات</h3>
+    <div class="row">
+      <div class="col"><input type="number" id="saleAmount" placeholder="المبلغ"></div>
+      <div class="col"><select id="saleType"><option value="كاش">كاش</option><option value="بنك">بنك</option></select></div>
+      <div class="col"><input type="text" id="saleNote" placeholder="ملاحظات (اسم المشتري/الصنف/جوال)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addSale()">➕ إضافة بيع</button></div>
+    </div>
+    <div id="recentSales" class="list"></div>
+
+    <h3 style="margin-top:18px">تسجيل المصاريف (من كاش/بنك المحل)</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="expenseDesc" placeholder="وصف المصروف"></div>
+      <div class="col"><input type="number" id="expenseAmount" placeholder="المبلغ"></div>
+      <div class="col"><select id="expenseType"><option value="كاش">كاش</option><option value="بنك">بنك</option></select></div>
+      <div class="col"><input type="text" id="expenseNote" placeholder="ملاحظات (اختياري)"></div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <select id="expenseBenefType">
+          <option value="">— ربط تلقائي (اختياري) —</option>
+          <option value="supplier">سداد تاجر</option>
+          <option value="loan">سداد مسلف</option>
+        </select>
+      </div>
+      <div class="col">
+        <input type="text" id="expenseBenefName" list="benefList" placeholder="اكتب الاسم وسيظهر اقتراح">
+        <datalist id="benefList"></datalist>
+      </div>
+      <div class="col">
+        <button class="btn btn-ok" id="addExpenseBtn">➕ إضافة مصروف</button>
+      </div>
+    </div>
+    <div id="recentExpenses" class="list"></div>
+  </section>
+
+  <!-- يومي -->
+  <section class="card" data-tab="daily">
+    <h3>التقرير اليومي</h3>
+    <div class="row print-hide">
+      <div class="col"><label>التاريخ</label><input type="date" id="r_date"></div>
+      <div class="col"><label>المحل</label>
+        <select id="r_store">
+          <option value="store1">روان بيبي</option>
+          <option value="store2">جنتل بيبي عبود</option>
+          <option value="store3">بسطة</option>
+        </select>
+      </div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="generateDaily()">عرض التقرير</button></div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة PDF</button></div>
+    </div>
+    <div id="dailyWrap"></div>
+  </section>
+
+  <!-- فترة / مجمّع -->
+  <section class="card" data-tab="range">
+    <h3>تقرير فترة / مجمّع</h3>
+    <div class="row print-hide">
+      <div class="col"><label>من</label><input type="date" id="f_from"></div>
+      <div class="col"><label>إلى</label><input type="date" id="f_to"></div>
+      <div class="col"><label>النمط</label><select id="f_mode"><option value="per">منفصل لكل محل</option><option value="all">مجمّع للمحلات الثلاثة</option></select></div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="generateRange()">عرض التقرير</button></div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة PDF</button></div>
+    </div>
+    <div id="rangeWrap"></div>
+  </section>
+
+  <!-- السُلف -->
+  <section class="card" data-tab="loans">
+    <h3>السُلف (كاش فقط)</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="loanPerson" placeholder="اسم المُسلف"></div>
+      <div class="col"><input type="number" id="loanAmount" placeholder="مبلغ السلفة (+)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addLoan()">➕ إضافة سلفة</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input type="text" id="loanPayPerson" list="loanList" placeholder="اسم المُسلف — سداد"></div>
+      <datalist id="loanList"></datalist>
+      <div class="col"><input type="number" id="loanPayAmount" placeholder="مبلغ السداد (−)"></div>
+      <div class="col"><select id="loanPaySource"><option value="store">من كاش المحل</option><option value="owner">من صندوق المالك</option></select></div>
+      <div class="col"><button class="btn btn-primary" onclick="payLoan()">💸 تسجيل سداد</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="loanStmtName" list="loanList" placeholder="اسم مسلف — كشف مفصل"></div>
+        <div class="col"><input type="date" id="loanFrom"></div>
+        <div class="col"><input type="date" id="loanTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderLoanStmt()">📄 عرض كشف المسلف</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="loansWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="loanStmtWrap"></div>
+  </section>
+
+  <!-- التجار -->
+  <section class="card" data-tab="suppliers">
+    <h3>التُجار</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="supName" placeholder="اسم التاجر"></div>
+      <div class="col"><input type="number" id="supInvoice" placeholder="قيمة الفاتورة (+)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addSupplierInvoice()">➕ تسجيل فاتورة</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input type="text" id="supPayName" list="supList" placeholder="اسم التاجر — دفعة"></div>
+      <datalist id="supList"></datalist>
+      <div class="col"><input type="number" id="supPayAmount" placeholder="مبلغ الدفعة (−)"></div>
+      <div class="col"><select id="supPaySource">
+        <option value="store">من كاش المحل</option>
+        <option value="owner">من صندوق المالك</option>
+        <option value="bank">من حساب البنك</option>
+      </select></div>
+      <div class="col"><button class="btn btn-primary" onclick="paySupplier()">💳 تسجيل دفعة</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="supStmtName" list="supList" placeholder="اسم تاجر — كشف مفصل"></div>
+        <div class="col"><input type="date" id="supFrom"></div>
+        <div class="col"><input type="date" id="supTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderSupplierStmt()">📄 عرض كشف التاجر</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="supWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="supStmtWrap"></div>
+  </section>
+
+  <!-- الديون (المدينون) -->
+  <section class="card" data-tab="debts">
+    <h3>الديون (العملاء) — أرصدة + تفاصيل + طباعة</h3>
+    <div class="row">
+      <div class="col"><input id="debtName" placeholder="اسم العميل"></div>
+      <div class="col"><input type="number" id="debtAmt" placeholder="قيمة الدين (+)"></div>
+      <div class="col"><input id="debtNote" placeholder="ملاحظة (اختياري)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addDebt()">➕ إضافة دين</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input id="debtPayName" list="debtList" placeholder="اسم العميل — سداد دين"></div>
+      <datalist id="debtList"></datalist>
+      <div class="col"><input type="number" id="debtPayAmt" placeholder="مبلغ السداد (−)"></div>
+      <div class="col"><select id="debtMethod"><option>كاش</option><option>بنك</option></select></div>
+      <div class="col"><button class="btn btn-primary" onclick="payDebt()">✅ تسجيل سداد دين</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة المعروض</button></div>
+      </div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="debtStmtName" list="debtList" placeholder="اسم العميل — كشف مفصل"></div>
+        <div class="col"><input type="date" id="debtFrom"></div>
+        <div class="col"><input type="date" id="debtTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderDebtStmt()">📄 عرض كشف العميل</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="debtsWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="debtStmtWrap"></div>
+  </section>
+
+  <!-- صندوق المالك -->
+  <section class="card" data-tab="owner">
+    <h3>صندوق المالك — كشف/تحصيل مجمّع + سحب موجه</h3>
+
+    <!-- معاينة/تقرير مجمع لكل المحلات -->
+    <div class="subtle">
+      <h4>تقرير مجمّع لكل المحلات (تفصيل كاش/بنك لكل محل)</h4>
+      <div class="row print-hide">
+        <div class="col"><label>من</label><input type="date" id="of_from"></div>
+        <div class="col"><label>إلى</label><input type="date" id="of_to"></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="renderOwnerAggregate()">عرض التقرير</button></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة التقرير</button></div>
+      </div>
+      <div id="ownerAggWrap"></div>
+    </div>
+
+    <!-- كشف الصندوق نفسه -->
+    <div class="subtle" style="margin-top:12px">
+      <h4>كشف صندوق المالك (الحركات) — مع حذف القيد</h4>
+      <div class="row print-hide">
+        <div class="col"><label>من</label><input type="date" id="ox_from"></div>
+        <div class="col"><label>إلى</label><input type="date" id="ox_to"></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="renderOwnerStatement()">عرض الكشف</button></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+      <div id="ownerWrap"></div>
+    </div>
+
+    <!-- سحب من صندوق المالك -->
+    <div class="subtle" style="margin-top:12px">
+      <h4>سحب من صندوق المالك (موجّه لتاجر/مسلف)</h4>
+      <div class="row">
+        <div class="col"><input id="ownerPayName" list="supList" placeholder="اسم التاجر/المسلف"></div>
+        <div class="col">
+          <select id="ownerPayType">
+            <option value="supplier">سداد تاجر</option>
+            <option value="loan">سداد مسلف</option>
+          </select>
+        </div>
+        <div class="col"><input type="number" id="ownerPayAmt" placeholder="المبلغ (−)"></div>
+        <div class="col"><button class="btn btn-danger" onclick="ownerPayOut()">سحب موجّه</button></div>
+      </div>
+      <div class="hint">سيتم خصم المبلغ من حساب التاجر/المسلف وتسجيله في كشف صندوق المالك. يمكن حذف القيد لاحقًا من الكشف.</div>
+    </div>
+
+    <!-- نسخ احتياطي -->
+    <div class="subtle print-hide" style="margin-top:12px">
+      <h4>نسخ احتياطي</h4>
+      <div class="row">
+        <div class="col"><button class="btn btn-outline" onclick="exportBackup()">⬇️ تصدير نسخة احتياطية</button></div>
+        <div class="col">
+          <label for="importFile" class="btn btn-ok" style="display:inline-block;cursor:pointer;text-align:center">⬆️ استيراد نسخة</label>
+          <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importBackup(this.files[0])"/>
+        </div>
+      </div>
+      <div class="hint">تشمل المحلات + السلف + التجار + الديون + صندوق المالك.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs print-hide">
+  <div class="tab active"><button onclick="showTab('input')">إدخال</button></div>
+  <div class="tab"><button onclick="showTab('daily')">يومي</button></div>
+  <div class="tab"><button onclick="showTab('range')">فترة/مجمّع</button></div>
+  <div class="tab"><button onclick="showTab('loans')">سُلف</button></div>
+  <div class="tab"><button onclick="showTab('suppliers')">تُجار</button></div>
+  <div class="tab"><button onclick="showTab('debts')">ديون</button></div>
+  <div class="tab"><button onclick="showTab('owner')">المالك</button></div>
+</nav>
+
+<script>
+/* ===== أدوات مساعدة ===== */
+const stores={store1:"روان بيبي",store2:"جنتل بيبي عبود",store3:"بسطة"};let currentStore="store1";
+const qs=s=>document.querySelector(s), qsa=s=>Array.from(document.querySelectorAll(s));
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const inR=(iso,from,to)=>{if(!iso)return false;const d=new Date(iso+"T00:00:00");return(!from||d>=new Date(from+"T00:00:00"))&&(!to||d<=new Date(to+"T00:00:00"));};
+const sum=(arr,fn)=>arr.reduce((a,b)=>a+fn(b),0);
+
+/* ===== تخزين ===== */
+const getStoreData=(st=currentStore)=>JSON.parse(localStorage.getItem(st)||'{"sales":[],"expenses":[]}');
+const saveStoreData=(data,st=currentStore)=>localStorage.setItem(st,JSON.stringify(data));
+const getOwner=()=>JSON.parse(localStorage.getItem('owner_fund')||'{"ledger":[]}');
+const saveOwner=v=>localStorage.setItem('owner_fund',JSON.stringify(v));
+const getLoans=()=>JSON.parse(localStorage.getItem('loans')||'{"people":{}}');
+const saveLoans=v=>localStorage.setItem('loans',JSON.stringify(v));
+const getSuppliers=()=>JSON.parse(localStorage.getItem('suppliers')||'{"people":{}}');
+const saveSuppliers=v=>localStorage.setItem('suppliers',JSON.stringify(v));
+const getDebts=()=>JSON.parse(localStorage.getItem('debts')||'{"people":{}}');
+const saveDebts=v=>localStorage.setItem('debts',JSON.stringify(v));
+
+/* ===== واجهة ===== */
+function changeStore(){currentStore=qs('#storeSelect').value;renderLists()}
+function showTab(name){
+  qsa('[data-tab]').forEach(el=>el.style.display=(el.getAttribute('data-tab')===name?'block':'none'));
+  const order=['input','daily','range','loans','suppliers','debts','owner'];
+  qsa('.tabs .tab').forEach((t,i)=>t.classList.toggle('active',order[i]===name));
+  if(name==='input'){renderLists();refillLists()}
+  if(name==='loans'){renderLoans()}
+  if(name==='suppliers'){renderSuppliers()}
+  if(name==='debts'){renderDebts()}
+  if(name==='owner'){updateOwnerBalanceUI();renderOwnerStatement()}
+}
+function printSection(){window.print()}
+
+/* ===== اقتراحات أسماء ديناميكية ===== */
+function supplierNames(){const S=getSuppliers();return S.people?Object.keys(S.people):[]}
+function loanNames(){const L=getLoans();return L.people?Object.keys(L.people):[]}
+function debtorNames(){const D=getDebts();return D.people?Object.keys(D.people):[]}
+function refillLists(){
+  const dl=qs('#benefList'); if(dl){const names=[...new Set([...supplierNames(),...loanNames()])]; dl.innerHTML=names.map(n=>`<option value="${n}">`).join('')}
+  const dl2=qs('#loanList'); if(dl2){dl2.innerHTML=loanNames().map(n=>`<option value="${n}">`).join('')}
+  const dl3=qs('#supList'); if(dl3){dl3.innerHTML=supplierNames().map(n=>`<option value="${n}">`).join('')}
+  const dl4=qs('#debtList'); if(dl4){dl4.innerHTML=debtorNames().map(n=>`<option value="${n}">`).join('')}
+}
+
+/* ===== المبيعات ===== */
+function addSale(){
+  const a=parseFloat(qs('#saleAmount').value||'0'), t=qs('#saleType').value, n=(qs('#saleNote').value||'').trim();
+  if(!a){alert('أدخل مبلغ صحيح');return}
+  const d=getStoreData(); d.sales.push({id:uid(),date:today(),type:t,amount:a,note:n}); saveStoreData(d);
+  qs('#saleAmount').value=''; qs('#saleNote').value=''; renderLists();
+}
+function deleteSale(id){
+  const d=getStoreData(); const i=d.sales.findIndex(x=>x.id===id);
+  if(i>-1){ if(!confirm('حذف عملية البيع؟'))return; d.sales.splice(i,1); saveStoreData(d); renderLists(); }
+}
+
+/* ===== المصاريف + ربط تلقائي لتاجر/مسلف ===== */
+function _deductSupplier(name, amt, sourceNote){
+  const S=getSuppliers(); if(!S.people) S.people={}; if(!S.people[name]) S.people[name]={balance:0,history:[]};
+  S.people[name].balance -= amt;
+  S.people[name].history.push({id:uid(),date:today(),type:'pay',amount:amt,note:sourceNote||'مصروف موجّه',source:'store'});
+  saveSuppliers(S); renderSuppliers?.(); refillLists();
+}
+function _undeductSupplier(name, amt, revertNote){
+  const S=getSuppliers(); if(!S.people||!S.people[name]) return;
+  S.people[name].balance += amt; S.people[name].history.push({id:uid(),date:today(),type:'revert',amount:amt,note:revertNote||'إلغاء مصروف موجّه'});
+  saveSuppliers(S); renderSuppliers?.(); refillLists();
+}
+function _deductLoan(name, amt, sourceNote){
+  const L=getLoans(); if(!L.people) L.people={}; if(!L.people[name]) L.people[name]={balance:0,history:[]};
+  L.people[name].balance -= amt;
+  L.people[name].history.push({id:uid(),date:today(),type:'out',amount:amt,note:sourceNote||'مصروف موجّه',source:'store'});
+  saveLoans(L); renderLoans?.(); refillLists();
+}
+function _undeductLoan(name, amt, revertNote){
+  const L=getLoans(); if(!L.people||!L.people[name]) return;
+  L.people[name].balance += amt; L.people[name].history.push({id:uid(),date:today(),type:'revert',amount:amt,note:revertNote||'إلغاء مصروف موجّه'});
+  saveLoans(L); renderLoans?.(); refillLists();
+}
+function addExpense(){
+  const desc=(qs('#expenseDesc').value||'').trim();
+  const a=parseFloat(qs('#expenseAmount').value||'0');
+  const t=qs('#expenseType').value;
+  const n=(qs('#expenseNote').value||'').trim();
+  const bType=qs('#expenseBenefType').value||''; const bName=(qs('#expenseBenefName').value||'').trim();
+  if(!desc||!a){alert('أدخل وصف ومبلغ صحيح');return}
+  const d=getStoreData();
+  const exp={id:uid(),date:today(),type:t,desc,amount:a,note:n,benefType:bType||null,benefName:bName||null};
+  d.expenses.push(exp); saveStoreData(d);
+  if(bType && bName){ if(bType==='supplier') _deductSupplier(bName,a,`مصروف موجّه من ${t}`); if(bType==='loan') _deductLoan(bName,a,`مصروف موجّه من ${t}`); }
+  qs('#expenseDesc').value=''; qs('#expenseAmount').value=''; qs('#expenseNote').value=''; qs('#expenseBenefType').value=''; qs('#expenseBenefName').value='';
+  renderLists();
+}
+function deleteExpense(id){
+  const d=getStoreData(); const i=d.expenses.findIndex(x=>x.id===id); if(i===-1)return;
+  const exp=d.expenses[i];
+  if(!confirm('حذف المصروف؟'))return;
+  if (exp.benefType && exp.benefName && exp.amount){
+    if (exp.benefType==='supplier') _undeductSupplier(exp.benefName, Number(exp.amount),'إلغاء مصروف موجّه');
+    if (exp.benefType==='loan')     _undeductLoan(exp.benefName, Number(exp.amount),'إلغاء مصروف موجّه');
+  }
+  d.expenses.splice(i,1); saveStoreData(d); renderLists();
+}
+function renderLists(){
+  const d=getStoreData();
+  const rs=d.sales.slice(-30).reverse(), re=d.expenses.slice(-30).reverse();
+  qs('#recentSales').innerHTML=rs.length?rs.map(v=>`<div class="item"><div class="meta">${v.date} — <span class="tag">${v.type}</span> ${v.note?('— <i>'+v.note+'</i>'):''}</div><div><b>${v.amount}</b></div><div><button class="btn btn-danger" onclick="deleteSale('${v.id}')">حذف</button></div></div>`).join(''):'<div class="hint">لا توجد مبيعات بعد</div>';
+  qs('#recentExpenses').innerHTML=re.length?re.map(v=>{
+    const link=(v.benefType&&v.benefName)?` — <b>${v.benefType==='supplier'?'سداد تاجر':'سداد مسلف'} (${v.benefName})</b>`:'';
+    return `<div class="item"><div class="meta">${v.date} — <span class="tag">${v.type}</span> — ${v.desc}${link} ${v.note?('— <i>'+v.note+'</i>'):''}</div><div><b>${v.amount}</b></div><div><button class="btn btn-danger" onclick="deleteExpense('${v.id}')">حذف</button></div></div>`;
+  }).join(''):'<div class="hint">لا توجد مصاريف بعد</div>';
+  refillLists();
+}
+
+/* ===== تقارير يومي/فترة ===== */
+function totalsByType(rows){return {cs:rows.filter(x=>x.type==='كاش').reduce((a,b)=>a+Number(b.amount||0),0), bs:rows.filter(x=>x.type==='بنك').reduce((a,b)=>a+Number(b.amount||0),0)}}
+function fmtDate(iso){const d=new Date(iso+"T00:00:00");const days=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];const pad=n=>String(n).padStart(2,"0");return `${days[d.getDay()]} ${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function generateDaily(){
+  const date=qs('#r_date').value||today(), st=qs('#r_store').value||currentStore; const d=getStoreData(st);
+  const s=d.sales.filter(x=>x.date===date), e=d.expenses.filter(x=>x.date===date);
+  const ts=totalsByType(s), te=totalsByType(e);
+  const netCash=ts.cs-te.cs, netBank=ts.bs-te.bs;
+  const salesRows=s.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.amount}</td><td>${x.note||''}</td></tr>`).join('')||'<tr><td colspan="4">لا يوجد مبيعات</td></tr>';
+  const expRows=e.map(x=>`<tr><td>${x.date}</td><td>${x.type}</td><td>${x.desc}</td><td>${x.amount}</td><td>${(x.benefType&&x.benefName)?(x.benefType==='supplier'?'تاجر: ':'مسلف: ')+x.benefName:(x.note||'')}</td></tr>`).join('')||'<tr><td colspan="5">لا يوجد مصاريف</td></tr>';
+  qs('#dailyWrap').innerHTML=`<div class="page"><h2 class="section">التقرير اليومي — ${stores[st]}</h2><div class="hint">تاريخ التقرير: <b>${fmtDate(date)}</b></div><div class="separator"></div><div class="kpi"><div class="box"><b>${ts.cs}</b>مبيعات كاش</div><div class="box"><b>${ts.bs}</b>مبيعات بنك</div><div class="box"><b>${te.cs}</b>مصروفات كاش</div><div class="box"><b>${te.bs}</b>مصروفات بنك</div></div><h3>تفاصيل المبيعات</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${salesRows}</tbody></table><h3>تفاصيل المصاريف</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>ملاحظات/ربط</th></tr></thead><tbody>${expRows}</tbody></table><div style="margin-top:16px;"><b>الصافي كاش:</b> ${netCash} — <b>الصافي بنك:</b> ${netBank}</div><div style="margin-top:36px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض _________</div><div>توقيع المدير المالي: _________</div></div></div>`;
+}
+function generateRange(){
+  const from=qs('#f_from').value||today().slice(0,8)+'01', to=qs('#f_to').value||today(), mode=qs('#f_mode').value||'per';
+  const shops=Object.keys(stores);
+  if(mode==='all'){
+    let sales=[],exp=[]; shops.forEach(st=>{const d=getStoreData(st); sales=sales.concat(d.sales.filter(x=>inR(x.date,from,to))); exp=exp.concat(d.expenses.filter(x=>inR(x.date,from,to)));});
+    const ts=totalsByType(sales), te=totalsByType(exp); const netCash=ts.cs-te.cs, netBank=ts.bs-te.bs;
+    qs('#rangeWrap').innerHTML=`<div class="page"><h2 class="section">تقرير مجمّع — كل المحلات</h2><div class="hint">الفترة: <b>${from}</b> → <b>${to}</b></div><div class="separator"></div><table><thead><tr><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>مبيعات كاش</td><td>${ts.cs}</td></tr><tr><td>مبيعات بنك</td><td>${ts.bs}</td></tr><tr><td>مصروفات كاش</td><td>${te.cs}</td></tr><tr><td>مصروفات بنك</td><td>${te.bs}</td></tr><tr><td><b>الصافي كاش</b></td><td><b>${netCash}</b></td></tr><tr><td><b>الصافي بنك</b></td><td><b>${netBank}</b></td></tr></tbody></table><div style="margin-top:36px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض _________</div><div>توقيع المدير المالي: _________</div></div></div>`;
+  }else{
+    let html=''; shops.forEach(st=>{const d=getStoreData(st); const s=d.sales.filter(x=>inR(x.date,from,to)), e=d.expenses.filter(x=>inR(x.date,from,to)); const ts=totalsByType(s), te=totalsByType(e); const netCash=ts.cs-te.cs, netBank=ts.bs-te.bs;
+      html+=`<div class="page"><h2 class="section">تقرير فترة — ${stores[st]}</h2><div class="hint">الفترة: <b>${from}</b> → <b>${to}</b></div><div class="separator"></div><table><thead><tr><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>مبيعات كاش</td><td>${ts.cs}</td></tr><tr><td>مبيعات بنك</td><td>${ts.bs}</td></tr><tr><td>مصروفات كاش</td><td>${te.cs}</td></tr><tr><td>مصروفات بنك</td><td>${te.bs}</td></tr><tr><td><b>الصافي كاش</b></td><td><b>${netCash}</b></td></tr><tr><td><b>الصافي بنك</b></td><td><b>${netBank}</b></td></tr></tbody></table><div style="margin-top:36px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض _________</div><div>توقيع المدير المالي: _________</div></div></div>`;
+    }); qs('#rangeWrap').innerHTML=html;
+  }
+}
+
+/* ===== تسوية صندوق المالك ===== */
+function updateOwnerBalanceUI(){
+  const O=getOwner(); const ins=sum(O.ledger,x=>x.type==='in'?Number(x.amount||0):0), outs=sum(O.ledger,x=>x.type==='out'?Number(x.amount||0):0);
+  qs('#ownerBalanceVal').textContent=(ins-outs);
+}
+function settleDay(){
+  const day=(qs('#todayInput').value||today()), d=getStoreData();
+  const cashSales=d.sales.filter(x=>x.date===day && x.type==='كاش').reduce((a,b)=>a+Number(b.amount||0),0);
+  const cashExp  =d.expenses.filter(x=>x.date===day && x.type==='كاش').reduce((a,b)=>a+Number(b.amount||0),0);
+  const net=cashSales-cashExp; const O=getOwner();
+  // احذف التسويات السابقة لنفس اليوم ولنفس المحل
+  for(let i=O.ledger.length-1;i>=0;i--){const e=O.ledger[i]; if(e.date===day && e.type==='in' && e.tag==='settle' && e.store===currentStore){O.ledger.splice(i,1)}}
+  if(net>0){O.ledger.push({id:uid(),date:day,type:'in',amount:+net,note:`ترحيل كاش اليوم من ${stores[currentStore]} (مبيعات-مصروفات)`,tag:'settle',store:currentStore});}
+  saveOwner(O); updateOwnerBalanceUI();
+}
+function previewAllStores(){
+  const day=(qs('#todayInput').value||today()); const shops=Object.keys(stores);
+  const rows=shops.map(st=>{const d=getStoreData(st);
+    const s=d.sales.filter(x=>x.date===day), e=d.expenses.filter(x=>x.date===day);
+    const ts=totalsByType(s), te=totalsByType(e); return {st,cs:ts.cs,bs:ts.bs,ce:te.cs,be:te.bs};
+  });
+  const html=`<div class="page"><h2 class="section">معاينة اليوم — ${day}</h2>
+  <table><thead><tr><th>المحل</th><th>مبيعات كاش</th><th>مصروفات كاش</th><th>صافي كاش</th><th>مبيعات بنك</th><th>مصروفات بنك</th><th>صافي بنك</th></tr></thead><tbody>
+  ${rows.map(r=>`<tr><td>${stores[r.st]}</td><td>${r.cs}</td><td>${r.ce}</td><td><b>${r.cs-r.ce}</b></td><td>${r.bs}</td><td>${r.be}</td><td><b>${r.bs-r.be}</b></td></tr>`).join('')}
+  </tbody></table></div>`;
+  alert('تم تجهيز المعاينة أسفل تبويب "المالك → تقرير مجمّع"'); qs('#ownerAggWrap').innerHTML=html;
+}
+function settleAllStores(){
+  const day=(qs('#todayInput').value||today()); const shops=Object.keys(stores); const O=getOwner();
+  // إزالة أي تسوية سابقة لليوم لكل المحلات
+  for(let i=O.ledger.length-1;i>=0;i--){const e=O.ledger[i]; if(e.date===day && e.type==='in' && e.tag==='settle'){O.ledger.splice(i,1)}}
+  let noteParts=[];
+  shops.forEach(st=>{
+    const d=getStoreData(st);
+    const s=d.sales.filter(x=>x.date===day), e=d.expenses.filter(x=>x.date===day);
+    const ts=totalsByType(s), te=totalsByType(e);
+    const netCash=ts.cs-te.cs; // المجمّع يرحّل الكاش فقط
+    noteParts.push(`${stores[st]} ك:${ts.cs}−${te.cs}=${netCash} | ب:${ts.bs}−${te.bs}=${ts.bs-te.bs}`);
+    if(netCash>0){O.ledger.push({id:uid(),date:day,type:'in',amount:+netCash,note:`تحصيل كاش يوم ${day} من ${stores[st]}`,tag:'settle',store:st});}
+  });
+  saveOwner(O); updateOwnerBalanceUI();
+  alert('تمت التسوية المجمّعة. تفاصيل:\n'+noteParts.join('\n'));
+}
+
+/* ===== صندوق المالك: تقارير/كشف/سحب ===== */
+function renderOwnerAggregate(){
+  const from=(qs('#of_from').value||today().slice(0,8)+'01'), to=(qs('#of_to').value||today()); const shops=Object.keys(stores);
+  let rows=shops.map(st=>{const d=getStoreData(st);
+    const s=d.sales.filter(x=>inR(x.date,from,to)), e=d.expenses.filter(x=>inR(x.date,from,to));
+    const ts=totalsByType(s), te=totalsByType(e); return {st,cs:ts.cs,bs:ts.bs,ce:te.cs,be:te.bs};
+  });
+  const totals=rows.reduce((acc,r)=>({cs:acc.cs+r.cs, bs:acc.bs+r.bs, ce:acc.ce+r.ce, be:acc.be+r.be}),{cs:0,bs:0,ce:0,be:0});
+  const netCash=totals.cs-totals.ce, netBank=totals.bs-totals.be;
+  const html=`<div class="page"><h2 class="section">تقرير مجمّع — كل المحلات</h2>
+  <div class="hint">الفترة: <b>${from}</b> → <b>${to}</b></div>
+  <table><thead><tr><th>المحل</th><th>مبيعات كاش</th><th>مصروفات كاش</th><th>صافي كاش</th><th>مبيعات بنك</th><th>مصروفات بنك</th><th>صافي بنك</th></tr></thead><tbody>
+  ${rows.map(r=>`<tr><td>${stores[r.st]}</td><td>${r.cs}</td><td>${r.ce}</td><td><b>${r.cs-r.ce}</b></td><td>${r.bs}</td><td>${r.be}</td><td><b>${r.bs-r.be}</b></td></tr>`).join('')}
+  </tbody></table>
+  <div style="margin-top:10px"><b>المجموع — صافي كاش:</b> ${netCash} — <b>صافي بنك:</b> ${netBank}</div>
+  <div style="margin-top:36px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض _________</div><div>توقيع المدير المالي: _________</div></div>
+  </div>`;
+  qs('#ownerAggWrap').innerHTML=html;
+}
+function renderOwnerStatement(){
+  const from=(qs('#ox_from').value||today().slice(0,8)+'01'), to=(qs('#ox_to').value||today()); const O=getOwner();
+  const rows=(O.ledger||[]).filter(x=>inR(x.date,from,to)).slice().reverse();
+  const ins=sum(rows,x=>x.type==='in'?Number(x.amount||0):0), outs=sum(rows,x=>x.type==='out'?Number(x.amount||0):0);
+  const tbl=rows.length?rows.map(e=>`<tr><td>${e.date}</td><td>${e.type==='in'?'تحصيل':'صرف'}</td><td>${e.amount}</td><td>${e.note||''}</td><td>${e.store?stores[e.store]:''}</td><td><button class="btn btn-danger" onclick="deleteOwnerEntry('${e.id}')">حذف</button></td></tr>`).join(''):`<tr><td colspan="6">لا توجد حركات</td></tr>`;
+  qs('#ownerWrap').innerHTML=`<div class="page"><h2 class="section">كشف صندوق المالك</h2><div class="hint">الفترة: <b>${from}</b> → <b>${to}</b></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الملاحظة</th><th>المحل</th><th>إجراء</th></tr></thead><tbody>${tbl}</tbody></table><div style="margin-top:8px"><b>تحصيل:</b> ${ins} — <b>صرف:</b> ${outs} — <b>الرصيد:</b> ${ins-outs}</div></div>`;
+  updateOwnerBalanceUI();
+}
+function deleteOwnerEntry(id){
+  const O=getOwner(); const i=O.ledger.findIndex(x=>x.id===id); if(i===-1)return;
+  const rec=O.ledger[i];
+  if(!confirm('حذف هذا القيد من صندوق المالك؟'))return;
+  // إن كان القيد مرتبط بسداد تاجر/مسلف من المالك، أرجع أثره
+  if(rec.link && rec.link.type==='supplier'){ const S=getSuppliers(); const nm=rec.link.name, amt=Number(rec.amount||0); if(S.people&&S.people[nm]){ S.people[nm].balance += amt; S.people[nm].history.push({id:uid(),date:today(),type:'revert',amount:amt,note:'إلغاء سداد من صندوق المالك'}); saveSuppliers(S);} }
+  if(rec.link && rec.link.type==='loan'){ const L=getLoans(); const nm=rec.link.name, amt=Number(rec.amount||0); if(L.people&&L.people[nm]){ L.people[nm].balance += amt; L.people[nm].history.push({id:uid(),date:today(),type:'revert',amount:amt,note:'إلغاء سداد من صندوق المالك'}); saveLoans(L);} }
+  O.ledger.splice(i,1); saveOwner(O); renderOwnerStatement(); updateOwnerBalanceUI();
+}
+function ownerPayOut(){
+  const name=(qs('#ownerPayName').value||'').trim(), typ=qs('#ownerPayType').value, amt=parseFloat(qs('#ownerPayAmt').value||'0');
+  if(!name||!amt){alert('أدخل الاسم والمبلغ');return}
+  const O=getOwner(); O.ledger.push({id:uid(),date:today(),type:'out',amount:amt,note:(typ==='supplier'?`سداد تاجر (${name})`:`سداد مسلف (${name})`),link:{type:typ,name}});
+  saveOwner(O);
+  if(typ==='supplier'){ const S=getSuppliers(); if(!S.people) S.people={}; if(!S.people[name]) S.people[name]={balance:0,history:[]}; S.people[name].balance -= amt; S.people[name].history.push({id:uid(),date:today(),type:'pay',amount:amt,note:'دفعة من صندوق المالك',source:'owner'}); saveSuppliers(S); renderSuppliers(); }
+  else { const L=getLoans(); if(!L.people) L.people={}; if(!L.people[name]) L.people[name]={balance:0,history:[]}; L.people[name].balance -= amt; L.people[name].history.push({id:uid(),date:today(),type:'out',amount:amt,note:'سداد من صندوق المالك',source:'owner'}); saveLoans(L); renderLoans(); }
+  qs('#ownerPayName').value=''; qs('#ownerPayAmt').value=''; renderOwnerStatement(); updateOwnerBalanceUI();
+}
+
+/* ===== سُلف ===== */
+function renderLoans(){
+  const L=getLoans(), ns=Object.keys(L.people||{});
+  if(!ns.length){qs('#loansWrap').innerHTML='<div class="hint">لا توجد سلف</div>';refillLists();return}
+  const rows=ns.map(n=>`<tr><td>${n}</td><td>${L.people[n].balance||0}</td><td><button class="btn btn-danger" onclick="deleteLoanPerson('${n.replace(/'/g,"\\'")}')">🗑 حذف</button></td></tr>`).join('');
+  const tx=[]; ns.forEach(n=>{(L.people[n].history||[]).slice(-100).forEach(h=>tx.push({name:n,...h}))}); tx.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).reverse();
+  const txRows=tx.length?tx.map(h=>`<tr><td>${h.date||''}</td><td>${h.name}</td><td>${h.type==='in'?'سلفة (+)':(h.type==='out'?'سداد (−)':(h.type==='revert'?'إلغاء':''))}</td><td>${h.amount||0}</td><td>${h.note||''}</td></tr>`).join(''):`<tr><td colspan="5">لا توجد حركات</td></tr>`;
+  qs('#loansWrap').innerHTML=`<h4>أرصدة المسلفين</h4><table><thead><tr><th>الاسم</th><th>الرصيد</th><th>إجراء</th></tr></thead><tbody>${rows}</tbody></table><h4 style="margin-top:10px">تفاصيل آخر الحركات</h4><table><thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th></tr></thead><tbody>${txRows}</tbody></table>`;
+  refillLists();
+}
+function addLoan(){
+  const name=(qs('#loanPerson').value||'').trim(), amt=parseFloat(qs('#loanAmount').value||'0');
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+  const L=getLoans(); if(!L.people) L.people={}; if(!L.people[name]) L.people[name]={balance:0,history:[]};
+  L.people[name].balance += amt; L.people[name].history.push({id:uid(),date:today(),type:'in',amount:amt,note:'سلفة للمحل'});
+  saveLoans(L);
+  // تزيد كاش المحل وتظهر كتدوينة في المبيعات
+  const d=getStoreData(); d.sales.push({id:uid(),date:today(),type:'كاش',amount:amt,note:`سلفة من (${name}) — غير مبيعات`}); saveStoreData(d);
+  qs('#loanPerson').value=''; qs('#loanAmount').value=''; renderLoans(); renderLists();
+}
+function payLoan(){
+  const name=(qs('#loanPayPerson').value||'').trim(), amt=parseFloat(qs('#loanPayAmount').value||'0'), src=qs('#loanPaySource').value;
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+  const L=getLoans(); if(!L.people||!L.people[name]){alert('لا يوجد هذا المسلف');return}
+  L.people[name].balance -= amt; L.people[name].history.push({id:uid(),date:today(),type:'out',amount:amt,note:`سداد من ${src==='store'?'كاش المحل':'صندوق المالك'}`,source:src});
+  saveLoans(L);
+  if(src==='store'){ const d=getStoreData(); d.expenses.push({id:uid(),date:today(),type:'كاش',desc:`سداد سلفة (${name})`,amount:amt,note:'من كاش المحل',benefType:'loan',benefName:name}); saveStoreData(d); renderLists(); }
+  else { const O=getOwner(); O.ledger.push({id:uid(),date:today(),type:'out',amount:amt,note:`سداد سلفة (${name})`,link:{type:'loan',name}}); saveOwner(O); updateOwnerBalanceUI(); }
+  qs('#loanPayPerson').value=''; qs('#loanPayAmount').value=''; renderLoans(); renderOwnerStatement();
+}
+function deleteLoanPerson(name){
+  if(!confirm(`حذف المسلف "${name}" وجميع معاملاته؟`))return;
+  const L=getLoans(); if(L.people&&L.people[name]){ delete L.people[name]; saveLoans(L); renderLoans(); refillLists(); }
+}
+
+/* ===== تجار ===== */
+function renderSuppliers(){
+  const S=getSuppliers(), ns=Object.keys(S.people||{});
+  if(!ns.length){qs('#supWrap').innerHTML='<div class="hint">لا يوجد تجار</div>';refillLists();return}
+  const rows=ns.map(n=>`<tr><td>${n}</td><td>${S.people[n].balance||0}</td><td><button class="btn btn-danger" onclick="deleteSupplierPerson('${n.replace(/'/g,"\\'")}')">🗑 حذف</button></td></tr>`).join('');
+  const tx=[]; ns.forEach(n=>{(S.people[n].history||[]).slice(-100).forEach(h=>tx.push({name:n,...h}))}); tx.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).reverse();
+  const txRows=tx.length?tx.map(h=>`<tr><td>${h.date||''}</td><td>${h.name}</td><td>${h.type==='invoice'?'فاتورة (+)':(h.type==='pay'?'دفعة (−)':(h.type==='revert'?'إلغاء':''))}</td><td>${h.amount||0}</td><td>${h.note||''}</td></tr>`).join(''):`<tr><td colspan="5">لا توجد حركات</td></tr>`;
+  qs('#supWrap').innerHTML=`<h4>أرصدة التجار</h4><table><thead><tr><th>التاجر</th><th>الرصيد</th><th>إجراء</th></tr></thead><tbody>${rows}</tbody></table><h4 style="margin-top:10px">تفاصيل آخر الحركات</h4><table><thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th></tr></thead><tbody>${txRows}</tbody></table>`;
+  refillLists();
+}
+function addSupplierInvoice(){
+  const name=(qs('#supName').value||'').trim(), amt=parseFloat(qs('#supInvoice').value||'0');
+  if(!name||!amt){alert('أدخل اسم وقيمة صحيحة');return}
+  const S=getSuppliers(); if(!S.people) S.people={}; if(!S.people[name]) S.people[name]={balance:0,history:[]};
+  S.people[name].balance += amt; S.people[name].history.push({id:uid(),date:today(),type:'invoice',amount:amt,note:'فاتورة مشتريات'}); saveSuppliers(S);
+  qs('#supName').value=''; qs('#supInvoice').value=''; renderSuppliers();
+}
+function paySupplier(){
+  const name=(qs('#supPayName').value||'').trim(), amt=parseFloat(qs('#supPayAmount').value||'0'), src=qs('#supPaySource').value;
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+  const S=getSuppliers(); if(!S.people||!S.people[name]){alert('لا يوجد هذا التاجر');return}
+  S.people[name].balance -= amt; S.people[name].history.push({id:uid(),date:today(),type:'pay',amount:amt,note:`دفعة من ${src==='store'?'كاش المحل':(src==='owner'?'صندوق المالك':'البنك')}`,source:src});
+  saveSuppliers(S);
+  if(src==='store'){ const d=getStoreData(); d.expenses.push({id:uid(),date:today(),type:'كاش',desc:`دفعة تاجر (${name})`,amount:amt,note:'من كاش المحل',benefType:'supplier',benefName:name}); saveStoreData(d); renderLists(); }
+  else if(src==='owner'){ const O=getOwner(); O.ledger.push({id:uid(),date:today(),type:'out',amount:amt,note:`دفعة تاجر (${name})`,link:{type:'supplier',name}}); saveOwner(O); updateOwnerBalanceUI(); }
+  else { const d=getStoreData(); d.expenses.push({id:uid(),date:today(),type:'بنك',desc:`دفعة تاجر (${name})`,amount:amt,note:'من البنك',benefType:'supplier',benefName:name}); saveStoreData(d); renderLists(); }
+  qs('#supPayName').value=''; qs('#supPayAmount').value=''; renderSuppliers(); renderOwnerStatement();
+}
+function deleteSupplierPerson(name){
+  if(!confirm(`حذف التاجر "${name}" وجميع معاملاته؟`))return;
+  const S=getSuppliers(); if(S.people&&S.people[name]){ delete S.people[name]; saveSuppliers(S); renderSuppliers(); refillLists(); }
+}
+
+/* ===== الديون ===== */
+function renderDebts(){
+  const D=getDebts(), ns=Object.keys(D.people||{});
+  if(!ns.length){qs("#debtsWrap").innerHTML='<div class="hint">لا توجد ديون</div>'; refillLists(); return;}
+  const rows=ns.map(n=>`<tr><td>${n}</td><td>${D.people[n].balance||0}</td><td><button class="btn btn-danger" onclick="delDebtor('${n.replace(/\'/g,"\\'")}')">🗑 حذف</button></td></tr>`).join('');
+  const tx=[]; ns.forEach(n=>{(D.people[n].history||[]).slice(-120).forEach(h=>tx.push({name:n,...h}))}); tx.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).reverse();
+  const txRows=tx.length?tx.map(h=>`<tr><td>${h.date||''}</td><td>${h.name}</td><td>${h.type==='debt'?'دين (+)':(h.type==='pay'?'سداد (−)':(h.type==='revert'?'إلغاء':''))}</td><td>${h.amount||0}</td><td>${h.note||''}</td></tr>`).join(''):`<tr><td colspan="5">لا توجد حركات</td></tr>`;
+  qs('#debtsWrap').innerHTML=`<h4>أرصدة المدينين</h4><table><thead><tr><th>العميل</th><th>الرصيد</th><th>إجراء</th></tr></thead><tbody>${rows}</tbody></table><h4 style="margin-top:10px">تفاصيل آخر الحركات</h4><table><thead><tr><th>التاريخ</th><th>الاسم</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th></tr></thead><tbody>${txRows}</tbody></table>`;
+  refillLists();
+}
+function addDebt(){
+  const name=(qs('#debtName').value||'').trim(), amt=parseFloat(qs('#debtAmt').value||'0'), note=(qs('#debtNote').value||'').trim();
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+  const D=getDebts(); if(!D.people) D.people={}; if(!D.people[name]) D.people[name]={balance:0,history:[]};
+  D.people[name].balance += amt; D.people[name].history.push({id:uid(),date:today(),type:'debt',amount:amt,note:note}); saveDebts(D);
+  // تُسجل كبيع (حسب طريقة السداد؟ الدين عادةً آجل، لا يزيد البنك/الكاش الآن) — نتركها كدين فقط
+  qs('#debtName').value=''; qs('#debtAmt').value=''; qs('#debtNote').value=''; renderDebts();
+}
+function payDebt(){
+  const name=(qs('#debtPayName').value||'').trim(), amt=parseFloat(qs('#debtPayAmt').value||'0'), method=qs('#debtMethod').value;
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+  const D=getDebts(); if(!D.people||!D.people[name]){alert('لا يوجد هذا العميل');return}
+  D.people[name].balance -= amt; D.people[name].history.push({id:uid(),date:today(),type:'pay',amount:amt,note:`سداد ${method}`}); saveDebts(D);
+  // دخل على المبيعات (كاش/بنك) — لأن العميل سدّد الآن
+  const d=getStoreData(); d.sales.push({id:uid(),date:today(),type:(method==='كاش'?'كاش':'بنك'),amount:amt,note:`سداد دين من (${name})`}); saveStoreData(d); renderLists();
+  qs('#debtPayName').value=''; qs('#debtPayAmt').value=''; renderDebts();
+}
+function delDebtor(name){
+  if(!confirm(`حذف المدين "${name}" وجميع معاملاته؟`))return;
+  const D=getDebts(); if(D.people&&D.people[name]){ delete D.people[name]; saveDebts(D); renderDebts(); refillLists(); }
+}
+function renderDebtStmt(){
+  const name=(qs("#debtStmtName").value||"").trim();
+  const from=qs("#debtFrom").value||today().slice(0,8)+"01";
+  const to  =qs("#debtTo").value||today();
+  const D=getDebts();
+  if(!name||!D.people||!D.people[name]){qs("#debtStmtWrap").innerHTML='<div class="hint">اختر اسم عميل صحيح.</div>';return}
+  const hist=(D.people[name].history||[]).filter(x=>inR(x.date,from,to));
+  const rows=hist.length?hist.map(x=>`<tr><td>${x.date||''}</td><td>${x.type==='debt'?'دين (+)':(x.type==='pay'?'سداد (−)':'إلغاء')}</td><td>${x.amount||0}</td><td>${x.note||''}</td></tr>`).join(''):`<tr><td colspan="4">لا توجد حركات</td></tr>`;
+  qs("#debtStmtWrap").innerHTML=`<div class="page"><h3 class="section">كشف حساب — عميل: ${name}</h3><div class="hint">الفترة: <b>${from}</b> → <b>${to}</b></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table><div style="margin-top:8px"><b>الرصيد الحالي:</b> ${(D.people[name].balance||0)}</div><div style="margin-top:26px;display:flex;justify-content:space-between"><div>توقيع المالك: عبد الله أبو عوض _________</div><div>توقيع المدير المالي: _________</div></div></div>`;
+}
+
+/* ===== نسخ احتياطي ===== */
+function exportBackup(){
+  const payload={version:"final-integrated-agg-owner",at:new Date().toISOString(),
+    stores:{store1:getStoreData('store1'),store2:getStoreData('store2'),store3:getStoreData('store3')},
+    loans:getLoans(),suppliers:getSuppliers(),debts:getDebts(),owner_fund:getOwner()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); const ts=new Date(); const pad=n=>String(n).padStart(2,'0');
+  a.href=URL.createObjectURL(blob); a.download=`backup-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importBackup(file){
+  if(!file){alert("اختر ملف النسخة الاحتياطية");return}
+  const r=new FileReader();
+  r.onload=e=>{try{
+    const data=JSON.parse(e.target.result);
+    localStorage.setItem('store1',JSON.stringify(data.stores?.store1||{"sales":[],"expenses":[]}));
+    localStorage.setItem('store2',JSON.stringify(data.stores?.store2||{"sales":[],"expenses":[]}));
+    localStorage.setItem('store3',JSON.stringify(data.stores?.store3||{"sales":[],"expenses":[]}));
+    localStorage.setItem('owner_fund',JSON.stringify(data.owner_fund||{"ledger":[]}));
+    localStorage.setItem('loans',JSON.stringify(data.loans||{"people":{}}));
+    localStorage.setItem('suppliers',JSON.stringify(data.suppliers||{"people":{}}));
+    localStorage.setItem('debts',JSON.stringify(data.debts||{"people":{}}));
+    renderLists(); renderLoans(); renderSuppliers(); renderDebts(); renderOwnerStatement(); renderOwnerAggregate(); updateOwnerBalanceUI(); refillLists();
+  }catch(err){alert("تعذر الاستيراد: "+err.message)}};
+  r.readAsText(file);
+}
+
+/* ===== تهيئة ===== */
+document.addEventListener('DOMContentLoaded',()=>{
+  const t=today();
+  ['todayInput','r_date','of_from','f_from','ox_from','debtFrom','supFrom','loanFrom'].forEach(id=>{const x=qs('#'+id); if(x) x.value=t;});
+  const x1=qs('#of_to'); if(x1) x1.value=t; const x2=qs('#f_to'); if(x2) x2.value=t; const x3=qs('#ox_to'); if(x3) x3.value=t;
+  showTab('input'); renderLists(); renderLoans(); renderSuppliers(); renderDebts(); renderOwnerStatement(); renderOwnerAggregate(); updateOwnerBalanceUI(); refillLists();
+});
+</script>
+
+<script>
+/* Service Worker (يتطلب ملف sw.js موجود بجانب index.html) */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js")
+      .then(()=>console.log("SW✅"))
+      .catch(e=>console.error("SW❌",e));
+  });
+}
+</script>
+</body>
+</html>
