@@ -713,5 +713,79 @@ if("serviceWorker" in navigator){
   });
 }
 </script>
+  <script>
+/* تصحيح إضافة المصروف — لا يحتاج تعديل أي كود قديم */
+(function(){
+  // تحويل الأرقام العربية-الهندية إلى إنجليزية
+  function normalizeNum(str){
+    if(!str) return '';
+    const ar = '٠١٢٣٤٥٦٧٨٩';
+    return String(str)
+      .replace(/[٠-٩]/g, d => String(ar.indexOf(d)))
+      .replace(/,/g,'')
+      .replace(/\s+/g,'')
+      .trim();
+  }
+
+  // دالة إضافة المصروف (تتجاوز القديمة تلقائيًا)
+  window.addExpense = function(){
+    const descInput = document.querySelector('#expenseDesc');
+    const amtInput  = document.querySelector('#expenseAmount');
+    const typeSel   = document.querySelector('#expenseType');
+    const noteInput = document.querySelector('#expenseNote');
+    const bTypeSel  = document.querySelector('#expenseBenefType');
+    const bNameInp  = document.querySelector('#expenseBenefName');
+
+    let desc = (descInput ? descInput.value : '').trim();
+    const amtRaw = normalizeNum(amtInput ? amtInput.value : '0');
+    const a = Number(amtRaw);
+    const t = typeSel ? typeSel.value : 'كاش';
+    const n = (noteInput ? noteInput.value : '').trim();
+    const bType = bTypeSel ? (bTypeSel.value || '') : '';
+    const bName = (bNameInp ? bNameInp.value : '').trim();
+
+    if(!(a > 0)){ alert('أدخل مبلغ صحيح'); return; }
+    if(!desc) desc = 'مصروف بدون وصف';
+
+    // دوال التخزين الموجودة أصلاً في ملفك
+    const d = (typeof getStoreData === 'function') ? getStoreData() : {sales:[],expenses:[]};
+    const exp = {
+      id: (typeof uid==='function'? uid(): String(Date.now())),
+      date: (typeof today==='function'? today(): new Date().toISOString().slice(0,10)),
+      type: t, desc, amount: a, note: n,
+      benefType: bType || null, benefName: bName || null
+    };
+    d.expenses = Array.isArray(d.expenses) ? d.expenses : [];
+    d.expenses.push(exp);
+    if(typeof saveStoreData === 'function') saveStoreData(d);
+
+    // ربط تلقائي للتاجر/المسلف إن وُجد
+    if (bType && bName){
+      if (bType === 'supplier' && typeof _deductSupplier === 'function'){
+        _deductSupplier(bName, a, `مصروف موجّه من ${t}`);
+      }
+      if (bType === 'loan' && typeof _deductLoan === 'function'){
+        _deductLoan(bName, a, `مصروف موجّه من ${t}`);
+      }
+    }
+
+    // تفريغ الحقول وتحديث العرض
+    if(descInput) descInput.value = '';
+    if(amtInput)  amtInput.value  = '';
+    if(noteInput) noteInput.value = '';
+    if(bTypeSel)  bTypeSel.value  = '';
+    if(bNameInp)  bNameInp.value  = '';
+    if(typeof renderLists === 'function') renderLists();
+  };
+
+  // تأكيد ربط زر "إضافة مصروف" بالدالة الجديدة
+  const btn = document.getElementById('addExpenseBtn');
+  if(btn){
+    // إزالة مستمعين قدامى (لو موجودين) بوضع اسم مختلف مستحيل نعرفه؟ الحل: نعيّن من جديد
+    btn.onclick = null;
+    btn.addEventListener('click', window.addExpense, { once: false });
+  }
+})();
+</script>
 </body>
 </html>
