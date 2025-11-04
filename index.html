@@ -1019,5 +1019,93 @@ if("serviceWorker" in navigator){
   if(saleBtn){ saleBtn.onclick = null; saleBtn.addEventListener('click', window.addSale); }
 })();
 </script> 
+ <script>
+(function(){
+  // --- أدوات مساعدة خفيفة (لو مش موجودة) ---
+  function normalizeNum(str){
+    if(!str) return '';
+    const ar='٠١٢٣٤٥٦٧٨٩';
+    return String(str)
+      .replace(/[٠-٩]/g, d => String(ar.indexOf(d)))
+      .replace(/,/g,'').replace(/\s+/g,'').trim();
+  }
+  function formDay(){
+    const el=document.querySelector('#todayInput');
+    return (el && el.value) ? el.value : new Date().toISOString().slice(0,10);
+  }
+  const qs = s => document.querySelector(s);
+
+  // --- نسخة addExpense مصححة (لو مش مضافة من قبل، نعرّفها) ---
+  if(typeof window.addExpense!=='function'){
+    window.addExpense=function(){
+      let desc=(qs('#expenseDesc')?.value || '').trim();
+      const amtRaw=normalizeNum(qs('#expenseAmount')?.value || '0');
+      const a=Number(amtRaw);
+      const t=qs('#expenseType')?.value || 'كاش';
+      const n=(qs('#expenseNote')?.value || '').trim();
+      const bType=qs('#expenseBenefType')?.value || '';
+      const bName=(qs('#expenseBenefName')?.value || '').trim();
+      if(!(a>0)){ alert('أدخل مبلغ صحيح'); return; }
+      if(!desc) desc='مصروف بدون وصف';
+
+      const d=(typeof getStoreData==='function')? getStoreData() : {sales:[],expenses:[]};
+      d.expenses = Array.isArray(d.expenses)? d.expenses : [];
+      d.expenses.push({
+        id:(typeof uid==='function'? uid(): String(Date.now())),
+        date:formDay(), type:t, desc, amount:a, note:n,
+        benefType:bType||null, benefName:bName||null
+      });
+      if(typeof saveStoreData==='function') saveStoreData(d);
+
+      // ربط تلقائي (تاجر/مسلف)
+      if(bType && bName){
+        if(bType==='supplier' && typeof _deductSupplier==='function') _deductSupplier(bName,a,`مصروف موجّه من ${t}`);
+        if(bType==='loan'     && typeof _deductLoan    ==='function') _deductLoan(bName,a,`مصروف موجّه من ${t}`);
+      }
+
+      if(qs('#expenseDesc')) qs('#expenseDesc').value='';
+      if(qs('#expenseAmount')) qs('#expenseAmount').value='';
+      if(qs('#expenseNote')) qs('#expenseNote').value='';
+      if(qs('#expenseBenefType')) qs('#expenseBenefType').value='';
+      if(qs('#expenseBenefName')) qs('#expenseBenefName').value='';
+      if(typeof renderLists==='function') renderLists();
+      if(typeof renderOwnerStatement==='function') renderOwnerStatement();
+    };
+  }
+
+  // --- خطاف التصدّي: يسبق أي مستمعات قديمة ويستدعي نسختنا فقط ---
+  function callFixedAddExpense(e){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try { window.addExpense(); } catch(err){ console.error(err); alert('تعذّر إضافة المصروف'); }
+    return false;
+  }
+
+  // التقط أي ضغطة على زر إضافة المصروف (حسب ID أو onclick)
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('#addExpenseBtn, button');
+    if(!btn) return;
+    const hasId = (btn.id==='addExpenseBtn');
+    const callsOld = (btn.getAttribute('onclick')||'').includes('addExpense');
+    if(hasId || callsOld){
+      // مرحلة الالتقاط تضمن أسبقيتنا
+      callFixedAddExpense(e);
+    }
+  }, true);
+
+  // دعم Enter من داخل حقول المصروف
+  ['#expenseAmount','#expenseDesc','#expenseNote','#expenseBenefName'].forEach(sel=>{
+    const el = qs(sel);
+    if(!el) return;
+    el.addEventListener('keydown', function(ev){
+      if(ev.key==='Enter'){
+        ev.preventDefault();
+        callFixedAddExpense(ev);
+      }
+    });
+  });
+
+})();
+ </script> 
 </body>
 </html>
