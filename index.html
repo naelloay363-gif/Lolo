@@ -787,5 +787,237 @@ if("serviceWorker" in navigator){
   }
 })();
 </script>
+ <script>
+/* تصحيح حفظ التاريخ + دعم الأرقام العربية — بدون لمس الكود القديم */
+(function () {
+  // 1) تحويل الأرقام العربية-الهندية إلى إنجليزية
+  function normalizeNum(str){
+    if(!str) return '';
+    const ar = '٠١٢٣٤٥٦٧٨٩';
+    return String(str)
+      .replace(/[٠-٩]/g, d => String(ar.indexOf(d)))
+      .replace(/,/g,'')
+      .replace(/\s+/g,'')
+      .trim();
+  }
+
+  // 2) أخذ التاريخ من الحقل العلوي (#todayInput)، وإلا اليوم
+  function formDay(){
+    const el = document.querySelector('#todayInput');
+    return (el && el.value) ? el.value : new Date().toISOString().slice(0,10);
+  }
+
+  // 3) اختصارات آمنة
+  const qs = s => document.querySelector(s);
+
+  // =========================
+  // مبيعات
+  // =========================
+  window.addSale = function(){
+    const amtRaw = normalizeNum(qs('#saleAmount')?.value || '0');
+    const a      = Number(amtRaw);
+    const t      = qs('#saleType')?.value || 'كاش';
+    const n      = (qs('#saleNote')?.value || '').trim();
+    if(!(a>0)){ alert('أدخل مبلغ صحيح'); return; }
+
+    const d = (typeof getStoreData==='function') ? getStoreData() : {sales:[],expenses:[]};
+    d.sales = Array.isArray(d.sales) ? d.sales : [];
+    d.sales.push({ id: (typeof uid==='function'? uid(): String(Date.now())),
+                   date: formDay(), type: t, amount: a, note: n });
+    if(typeof saveStoreData==='function') saveStoreData(d);
+
+    if(qs('#saleAmount')) qs('#saleAmount').value='';
+    if(qs('#saleNote'))   qs('#saleNote').value='';
+    if(typeof renderLists==='function') renderLists();
+  };
+
+  // =========================
+  // مصاريف + ربط تلقائي (تاجر/مسلف)
+  // =========================
+  window.addExpense = function(){
+    let desc = (qs('#expenseDesc')?.value || '').trim();
+    const amtRaw = normalizeNum(qs('#expenseAmount')?.value || '0');
+    const a      = Number(amtRaw);
+    const t      = qs('#expenseType')?.value || 'كاش';
+    const n      = (qs('#expenseNote')?.value || '').trim();
+    const bType  = qs('#expenseBenefType')?.value || '';
+    const bName  = (qs('#expenseBenefName')?.value || '').trim();
+
+    if(!(a>0)){ alert('أدخل مبلغ صحيح'); return; }
+    if(!desc) desc = 'مصروف بدون وصف';
+
+    const d = (typeof getStoreData==='function') ? getStoreData() : {sales:[],expenses:[]};
+    d.expenses = Array.isArray(d.expenses) ? d.expenses : [];
+    const exp = { id: (typeof uid==='function'? uid(): String(Date.now())),
+                  date: formDay(), type: t, desc, amount:a, note:n,
+                  benefType: bType || null, benefName: bName || null };
+    d.expenses.push(exp);
+    if(typeof saveStoreData==='function') saveStoreData(d);
+
+    // ربط تلقائي
+    if (bType && bName){
+      if (bType==='supplier' && typeof _deductSupplier==='function') _deductSupplier(bName, a, `مصروف موجّه من ${t}`);
+      if (bType==='loan'     && typeof _deductLoan    ==='function') _deductLoan(bName, a, `مصروف موجّه من ${t}`);
+    }
+
+    if(qs('#expenseDesc')) qs('#expenseDesc').value='';
+    if(qs('#expenseAmount')) qs('#expenseAmount').value='';
+    if(qs('#expenseNote')) qs('#expenseNote').value='';
+    if(qs('#expenseBenefType')) qs('#expenseBenefType').value='';
+    if(qs('#expenseBenefName')) qs('#expenseBenefName').value='';
+    if(typeof renderLists==='function') renderLists();
+    if(typeof renderOwnerStatement==='function') renderOwnerStatement();
+  };
+
+  // =========================
+  // سُلف
+  // =========================
+  window.addLoan = function(){
+    const name = (qs('#loanPerson')?.value || '').trim();
+    const amt  = Number(normalizeNum(qs('#loanAmount')?.value || '0'));
+    if(!name || !(amt>0)){ alert('أدخل اسم ومبلغ صحيح'); return; }
+
+    const L = (typeof getLoans==='function') ? getLoans() : {people:{}};
+    if(!L.people) L.people = {};
+    if(!L.people[name]) L.people[name] = { balance:0, history:[] };
+
+    const id = (typeof uid==='function'? uid(): String(Date.now()));
+    L.people[name].balance += amt;
+    L.people[name].history.push({ id, date: formDay(), type:'in', amount: amt, note:'سلفة للمحل' });
+    if(typeof saveLoans==='function') saveLoans(L);
+
+    if(qs('#loanPerson')) qs('#loanPerson').value='';
+    if(qs('#loanAmount')) qs('#loanAmount').value='';
+    if(typeof renderLoans==='function') renderLoans();
+  };
+
+  window.payLoan = function(){
+    const name = (qs('#loanPayPerson')?.value || '').trim();
+    const amt  = Number(normalizeNum(qs('#loanPayAmount')?.value || '0'));
+    const src  = qs('#loanPaySource')?.value || 'store'; // store / owner
+    if(!name || !(amt>0)){ alert('أدخل اسم ومبلغ صحيح'); return; }
+
+    const L = (typeof getLoans==='function') ? getLoans() : {people:{}};
+    if(!L.people || !L.people[name]){ alert('لا يوجد هذا المسلف'); return; }
+
+    const payId = (typeof uid==='function'? uid(): String(Date.now()));
+    let linkedExpenseId = null;
+
+    L.people[name].balance -= amt;
+    L.people[name].history = L.people[name].history || [];
+    L.people[name].history.push({
+      id: payId, date: formDay(), type:'out', amount: amt,
+      source: (src==='store'?'كاش المحل':'صندوق المالك'),
+      note:   (src==='store'?'سداد من كاش المحل':'سداد من صندوق المالك'),
+      linkedExpenseId: null
+    });
+    if(typeof saveLoans==='function') saveLoans(L);
+
+    if(src==='store'){
+      const d = (typeof getStoreData==='function') ? getStoreData() : {sales:[],expenses:[]};
+      linkedExpenseId = (typeof uid==='function'? uid(): String(Date.now()));
+      d.expenses = Array.isArray(d.expenses) ? d.expenses : [];
+      d.expenses.push({
+        id: linkedExpenseId, date: formDay(), type: 'كاش',
+        desc:`سداد سلفة (${name})`, amount: amt, note:'من كاش المحل',
+        benefType:'loan', benefName:name
+      });
+      if(typeof saveStoreData==='function') saveStoreData(d);
+      const L2 = (typeof getLoans==='function') ? getLoans() : {people:{}};
+      const rec = (L2.people?.[name]?.history || []).find(x=>x.id===payId);
+      if(rec){ rec.linkedExpenseId = linkedExpenseId; if(typeof saveLoans==='function') saveLoans(L2); }
+      if(typeof renderLists==='function') renderLists();
+    }else{
+      const O = (typeof getOwner==='function') ? getOwner() : {ledger:[]};
+      O.ledger = Array.isArray(O.ledger) ? O.ledger : [];
+      O.ledger.push({ id:(typeof uid==='function'? uid(): String(Date.now())), date: formDay(), type:'out', amount: amt, note:`سداد سلفة (${name})` });
+      if(typeof saveOwner==='function') saveOwner(O);
+      if(typeof updateOwnerBalanceUI==='function') updateOwnerBalanceUI();
+    }
+    if(qs('#loanPayPerson')) qs('#loanPayPerson').value='';
+    if(qs('#loanPayAmount')) qs('#loanPayAmount').value='';
+    if(typeof renderLoans==='function') renderLoans();
+    if(typeof renderOwnerStatement==='function') renderOwnerStatement();
+  };
+
+  // =========================
+  // تُجّار
+  // =========================
+  window.addSupplierInvoice = function(){
+    const name = (qs('#supName')?.value || '').trim();
+    const amt  = Number(normalizeNum(qs('#supInvoice')?.value || '0'));
+    if(!name || !(amt>0)){ alert('أدخل اسم وقيمة فاتورة صحيحة'); return; }
+
+    const S = (typeof getSuppliers==='function') ? getSuppliers() : {people:{}};
+    if(!S.people) S.people = {};
+    if(!S.people[name]) S.people[name] = { balance:0, history:[] };
+
+    const id = (typeof uid==='function'? uid(): String(Date.now()));
+    S.people[name].balance += amt;
+    S.people[name].history.push({ id, date: formDay(), type:'invoice', amount: amt, note:'فاتورة مشتريات' });
+    if(typeof saveSuppliers==='function') saveSuppliers(S);
+
+    if(qs('#supName')) qs('#supName').value='';
+    if(qs('#supInvoice')) qs('#supInvoice').value='';
+    if(typeof renderSuppliers==='function') renderSuppliers();
+  };
+
+  window.paySupplier = function(){
+    const name = (qs('#supPayName')?.value || '').trim();
+    const amt  = Number(normalizeNum(qs('#supPayAmount')?.value || '0'));
+    const src  = qs('#supPaySource')?.value || 'store'; // store / owner / bank
+    if(!name || !(amt>0)){ alert('أدخل اسم ومبلغ صحيح'); return; }
+
+    const S = (typeof getSuppliers==='function') ? getSuppliers() : {people:{}};
+    if(!S.people || !S.people[name]){ alert('لا يوجد هذا التاجر'); return; }
+
+    const payId = (typeof uid==='function'? uid(): String(Date.now()));
+    let linkedExpenseId = null;
+
+    S.people[name].balance -= amt;
+    S.people[name].history = S.people[name].history || [];
+    S.people[name].history.push({
+      id: payId, date: formDay(), type:'pay', amount: amt,
+      source: (src==='store'?'كاش المحل':(src==='owner'?'صندوق المالك':'البنك')),
+      note:   (src==='store'?'دفعة من كاش المحل':(src==='owner'?'دفعة من صندوق المالك':'دفعة من البنك')),
+      linkedExpenseId: null
+    });
+    if(typeof saveSuppliers==='function') saveSuppliers(S);
+
+    if(src==='store' || src==='bank'){
+      const d = (typeof getStoreData==='function') ? getStoreData() : {sales:[],expenses:[]};
+      linkedExpenseId = (typeof uid==='function'? uid(): String(Date.now()));
+      d.expenses = Array.isArray(d.expenses) ? d.expenses : [];
+      d.expenses.push({
+        id: linkedExpenseId, date: formDay(), type: (src==='store'?'كاش':'بنك'),
+        desc:`دفعة تاجر (${name})`, amount: amt, note:(src==='store'?'من كاش المحل':'من البنك'),
+        benefType:'supplier', benefName:name
+      });
+      if(typeof saveStoreData==='function') saveStoreData(d);
+      const S2 = (typeof getSuppliers==='function') ? getSuppliers() : {people:{}};
+      const rec = (S2.people?.[name]?.history || []).find(x=>x.id===payId);
+      if(rec){ rec.linkedExpenseId = linkedExpenseId; if(typeof saveSuppliers==='function') saveSuppliers(S2); }
+      if(typeof renderLists==='function') renderLists();
+    }else if(src==='owner'){
+      const O = (typeof getOwner==='function') ? getOwner() : {ledger:[]};
+      O.ledger = Array.isArray(O.ledger) ? O.ledger : [];
+      O.ledger.push({ id:(typeof uid==='function'? uid(): String(Date.now())), date: formDay(), type:'out', amount: amt, note:`دفعة تاجر (${name})` });
+      if(typeof saveOwner==='function') saveOwner(O);
+      if(typeof updateOwnerBalanceUI==='function') updateOwnerBalanceUI();
+    }
+
+    if(qs('#supPayName')) qs('#supPayName').value='';
+    if(qs('#supPayAmount')) qs('#supPayAmount').value='';
+    if(typeof renderSuppliers==='function') renderSuppliers();
+    if(typeof renderOwnerStatement==='function') renderOwnerStatement();
+  };
+
+  // 4) ربط الأزرار (لو موجودة IDs لها)
+  const expBtn = document.getElementById('addExpenseBtn');
+  if(expBtn){ expBtn.onclick = null; expBtn.addEventListener('click', window.addExpense); }
+  const saleBtn = document.getElementById('addSaleBtn');
+  if(saleBtn){ saleBtn.onclick = null; saleBtn.addEventListener('click', window.addSale); }
+})();
+</script> 
 </body>
 </html>
