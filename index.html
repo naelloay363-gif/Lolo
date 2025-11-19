@@ -1637,5 +1637,507 @@ if("serviceWorker" in navigator){
     }
   }
 })(); 
+<!-- 🔹 تبويب كشف حساب (تجار / ديانة) -->
+<div id="statements-wrapper" dir="rtl" style="margin:10px; padding:10px; background:#eef3ff; border-radius:10px; border:1px solid #d1d5db; font-family:Tajawal, Tahoma, Arial, sans-serif;">
+  <h2 style="margin-top:0; font-size:18px; margin-bottom:8px;">📒 كشف حساب (تجّار / ديانة)</h2>
+  <p style="margin:0 0 10px; font-size:12px; color:#4b5563;">
+    هذا القسم منفصل عن باقي النظام، يمكنك من خلاله تسجيل حركات للتجّار والمدينين مع ملاحظات وحذف أي حركة.
+  </p>
+
+  <!-- أزرار التبويب -->
+  <div style="margin-bottom:10px;">
+    <button id="btnTabTrader" type="button" style="padding:5px 10px; margin-left:5px;">كشف حساب تاجر</button>
+    <button id="btnTabDebtor" type="button" style="padding:5px 10px;">كشف حساب مدين (ديانة)</button>
+  </div>
+
+  <!-- تبويب التجّار -->
+  <div id="tabTrader" style="display:block;">
+    <h3 style="margin:0 0 6px; font-size:16px;">👨‍💼 التجّار</h3>
+
+    <div style="margin-bottom:6px;">
+      <label style="font-size:13px;">إضافة / اختيار تاجر:</label><br>
+      <input id="newTraderNameInput" type="text" placeholder="اسم تاجر جديد" style="width:60%; padding:4px; margin-top:4px;">
+      <button id="addTraderBtn" type="button" style="padding:4px 8px; margin-right:4px;">حفظ التاجر</button>
+    </div>
+
+    <div style="margin-bottom:6px;">
+      <label style="font-size:13px;">التاجر:</label><br>
+      <select id="traderSelect" style="width:60%; padding:4px; margin-top:4px;"></select>
+    </div>
+
+    <div style="margin-bottom:8px; font-size:13px; background:#f9fafb; padding:6px; border-radius:6px;">
+      <b>إضافة حركة للتاجر المختار:</b><br>
+      <select id="traderMoveType" style="margin-top:4px; padding:2px 4px;">
+        <option value="debt">مشتريات / دين على التاجر (يزيد الرصيد)</option>
+        <option value="payment">سداد للتاجر (ينقص الرصيد)</option>
+        <option value="other">حركة أخرى (لا تغيّر الرصيد)</option>
+      </select>
+      <input id="traderMoveAmount" type="number" placeholder="المبلغ" style="width:120px; padding:2px 4px; margin-right:4px; margin-top:4px;">
+      <input id="traderMoveNote" type="text" placeholder="ملاحظات (اختياري)" style="width:40%; padding:2px 4px; margin-top:4px;">
+      <button id="addTraderMoveBtn" type="button" style="padding:3px 8px; margin-top:4px;">إضافة الحركة</button>
+    </div>
+
+    <button id="showTraderStatementBtn" type="button" style="padding:4px 10px; margin-bottom:6px;">عرض كشف حساب التاجر</button>
+
+    <div id="traderStatementBox" style="display:none; margin-top:6px; max-height:250px; overflow:auto; border-top:1px solid #e5e7eb; padding-top:6px;">
+      <h4 id="traderStatementTitle" style="margin:0 0 6px; font-size:14px;"></h4>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead>
+          <tr style="background:#e5e7eb;">
+            <th style="border:1px solid #d1d5db; padding:3px;">التاريخ</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">النوع</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">المبلغ</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">ملاحظة</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">حذف</th>
+          </tr>
+        </thead>
+        <tbody id="traderStatementBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- تبويب المدينين (الديانة) -->
+  <div id="tabDebtor" style="display:none;">
+    <h3 style="margin:10px 0 6px; font-size:16px;">👤 المدينون (ديانة)</h3>
+
+    <div style="margin-bottom:6px;">
+      <label style="font-size:13px;">إضافة / اختيار مدين:</label><br>
+      <input id="newDebtorNameInput" type="text" placeholder="اسم مدين جديد" style="width:60%; padding:4px; margin-top:4px;">
+      <button id="addDebtorBtn" type="button" style="padding:4px 8px; margin-right:4px;">حفظ المدين</button>
+    </div>
+
+    <div style="margin-bottom:6px;">
+      <label style="font-size:13px;">المدين:</label><br>
+      <select id="debtorSelect" style="width:60%; padding:4px; margin-top:4px;"></select>
+    </div>
+
+    <div style="margin-bottom:8px; font-size:13px; background:#f9fafb; padding:6px; border-radius:6px;">
+      <b>إضافة حركة على المدين المختار:</b><br>
+      <select id="debtorMoveType" style="margin-top:4px; padding:2px 4px;">
+        <option value="debt">دين على الزبون (يزيد الرصيد)</option>
+        <option value="payment">سداد من الزبون (ينقص الرصيد)</option>
+        <option value="other">حركة أخرى (لا تغيّر الرصيد)</option>
+      </select>
+      <input id="debtorMoveAmount" type="number" placeholder="المبلغ" style="width:120px; padding:2px 4px; margin-right:4px; margin-top:4px;">
+      <input id="debtorMoveNote" type="text" placeholder="ملاحظات (اختياري)" style="width:40%; padding:2px 4px; margin-top:4px;">
+      <button id="addDebtorMoveBtn" type="button" style="padding:3px 8px; margin-top:4px;">إضافة الحركة</button>
+    </div>
+
+    <button id="showDebtorStatementBtn" type="button" style="padding:4px 10px; margin-bottom:6px;">عرض كشف حساب المدين</button>
+
+    <div id="debtorStatementBox" style="display:none; margin-top:6px; max-height:250px; overflow:auto; border-top:1px solid #e5e7eb; padding-top:6px;">
+      <h4 id="debtorStatementTitle" style="margin:0 0 6px; font-size:14px;"></h4>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead>
+          <tr style="background:#e5e7eb;">
+            <th style="border:1px solid #d1d5db; padding:3px;">التاريخ</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">النوع</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">المبلغ</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">ملاحظة</th>
+            <th style="border:1px solid #d1d5db; padding:3px;">حذف</th>
+          </tr>
+        </thead>
+        <tbody id="debtorStatementBody"></tbody>
+      </table>
+    </div>
+  </div>
+  </div>  
+<script>
+(function () {
+  if (!window.localStorage) {
+    alert('متصفحك لا يدعم التخزين المحلي (localStorage)، بيانات كشف الحساب لن تُحفظ.');
+    return;
+  }
+
+  // تحميل / حفظ من localStorage
+  function load(key) {
+    try {
+      var txt = localStorage.getItem(key);
+      return txt ? JSON.parse(txt) : [];
+    } catch (e) {
+      console.log('خطأ قراءة ' + key, e);
+      return [];
+    }
+  }
+  function save(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.log('خطأ حفظ ' + key, e);
+    }
+  }
+  function genId() {
+    return Date.now() + Math.floor(Math.random() * 1000);
+  }
+
+  var statTraders = load('stat_traders');  // تجّار كشف الحساب
+  var statDebtors = load('stat_debtors');  // مدينين كشف الحساب
+
+  // عناصر التبويب
+  var btnTabTrader = document.getElementById('btnTabTrader');
+  var btnTabDebtor = document.getElementById('btnTabDebtor');
+  var tabTrader = document.getElementById('tabTrader');
+  var tabDebtor = document.getElementById('tabDebtor');
+
+  // تبديل بين تبويب التجّار / الديانة
+  btnTabTrader.onclick = function () {
+    tabTrader.style.display = 'block';
+    tabDebtor.style.display = 'none';
+  };
+  btnTabDebtor.onclick = function () {
+    tabTrader.style.display = 'none';
+    tabDebtor.style.display = 'block';
+  };
+
+  // عناصر التجّار
+  var newTraderNameInput = document.getElementById('newTraderNameInput');
+  var addTraderBtn = document.getElementById('addTraderBtn');
+  var traderSelect = document.getElementById('traderSelect');
+  var traderMoveType = document.getElementById('traderMoveType');
+  var traderMoveAmount = document.getElementById('traderMoveAmount');
+  var traderMoveNote = document.getElementById('traderMoveNote');
+  var addTraderMoveBtn = document.getElementById('addTraderMoveBtn');
+  var showTraderStatementBtn = document.getElementById('showTraderStatementBtn');
+  var traderStatementBox = document.getElementById('traderStatementBox');
+  var traderStatementTitle = document.getElementById('traderStatementTitle');
+  var traderStatementBody = document.getElementById('traderStatementBody');
+
+  // عناصر المدينين
+  var newDebtorNameInput = document.getElementById('newDebtorNameInput');
+  var addDebtorBtn = document.getElementById('addDebtorBtn');
+  var debtorSelect = document.getElementById('debtorSelect');
+  var debtorMoveType = document.getElementById('debtorMoveType');
+  var debtorMoveAmount = document.getElementById('debtorMoveAmount');
+  var debtorMoveNote = document.getElementById('debtorMoveNote');
+  var addDebtorMoveBtn = document.getElementById('addDebtorMoveBtn');
+  var showDebtorStatementBtn = document.getElementById('showDebtorStatementBtn');
+  var debtorStatementBox = document.getElementById('debtorStatementBox');
+  var debtorStatementTitle = document.getElementById('debtorStatementTitle');
+  var debtorStatementBody = document.getElementById('debtorStatementBody');
+
+  // تعبئة القوائم
+  function refreshTraderSelect() {
+    traderSelect.innerHTML = '';
+    for (var i = 0; i < statTraders.length; i++) {
+      var t = statTraders[i];
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      traderSelect.appendChild(opt);
+    }
+  }
+  function refreshDebtorSelect() {
+    debtorSelect.innerHTML = '';
+    for (var i = 0; i < statDebtors.length; i++) {
+      var d = statDebtors[i];
+      var opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.name;
+      debtorSelect.appendChild(opt);
+    }
+  }
+
+  // تأكد إن لكل واحد movements و id
+  function ensure(list) {
+    for (var i = 0; i < list.length; i++) {
+      if (!list[i].id) list[i].id = genId();
+      if (!list[i].movements) list[i].movements = [];
+      if (typeof list[i].balance !== 'number') list[i].balance = 0;
+    }
+  }
+  ensure(statTraders);
+  ensure(statDebtors);
+  save('stat_traders', statTraders);
+  save('stat_debtors', statDebtors);
+
+  refreshTraderSelect();
+  refreshDebtorSelect();
+
+  // إضافة تاجر
+  addTraderBtn.onclick = function () {
+    var name = newTraderNameInput.value.replace(/\s+/g, ' ').trim();
+    if (!name) {
+      alert('اكتب اسم التاجر');
+      return;
+    }
+    var t = { id: genId(), name: name, balance: 0, movements: [] };
+    statTraders.push(t);
+    save('stat_traders', statTraders);
+    refreshTraderSelect();
+    newTraderNameInput.value = '';
+    alert('تم حفظ التاجر ✅');
+  };
+
+  // إضافة مدين
+  addDebtorBtn.onclick = function () {
+    var name = newDebtorNameInput.value.replace(/\s+/g, ' ').trim();
+    if (!name) {
+      alert('اكتب اسم المدين');
+      return;
+    }
+    var d = { id: genId(), name: name, balance: 0, movements: [] };
+    statDebtors.push(d);
+    save('stat_debtors', statDebtors);
+    refreshDebtorSelect();
+    newDebtorNameInput.value = '';
+    alert('تم حفظ المدين ✅');
+  };
+
+  // إضافة حركة للتاجر
+  addTraderMoveBtn.onclick = function () {
+    if (!traderSelect.value) {
+      alert('اختر تاجر أولاً');
+      return;
+    }
+    var amount = Number(traderMoveAmount.value || 0);
+    if (!amount) {
+      alert('اكتب مبلغ صحيح');
+      return;
+    }
+    var type = traderMoveType.value;
+    var note = traderMoveNote.value.trim();
+    var date = new Date().toISOString().slice(0, 10);
+
+    var i;
+    var trader = null;
+    for (i = 0; i < statTraders.length; i++) {
+      if (String(statTraders[i].id) === String(traderSelect.value)) {
+        trader = statTraders[i];
+        break;
+      }
+    }
+    if (!trader) {
+      alert('لم يتم العثور على التاجر');
+      return;
+    }
+
+    var mv = { id: genId(), date: date, type: type, amount: amount, note: note };
+    trader.movements.push(mv);
+
+    if (type === 'debt') {
+      trader.balance += amount;
+    } else if (type === 'payment') {
+      trader.balance -= amount;
+    }
+
+    save('stat_traders', statTraders);
+    traderMoveAmount.value = '';
+    traderMoveNote.value = '';
+    alert('تم إضافة الحركة ✅');
+  };
+
+  // إضافة حركة للمدين
+  addDebtorMoveBtn.onclick = function () {
+    if (!debtorSelect.value) {
+      alert('اختر مدين أولاً');
+      return;
+    }
+    var amount = Number(debtorMoveAmount.value || 0);
+    if (!amount) {
+      alert('اكتب مبلغ صحيح');
+      return;
+    }
+    var type = debtorMoveType.value;
+    var note = debtorMoveNote.value.trim();
+    var date = new Date().toISOString().slice(0, 10);
+
+    var i;
+    var debtor = null;
+    for (i = 0; i < statDebtors.length; i++) {
+      if (String(statDebtors[i].id) === String(debtorSelect.value)) {
+        debtor = statDebtors[i];
+        break;
+      }
+    }
+    if (!debtor) {
+      alert('لم يتم العثور على المدين');
+      return;
+    }
+
+    var mv = { id: genId(), date: date, type: type, amount: amount, note: note };
+    debtor.movements.push(mv);
+
+    if (type === 'debt') {
+      debtor.balance += amount;
+    } else if (type === 'payment') {
+      debtor.balance -= amount;
+    }
+
+    save('stat_debtors', statDebtors);
+    debtorMoveAmount.value = '';
+    debtorMoveNote.value = '';
+    alert('تم إضافة الحركة ✅');
+  };
+
+  // عرض كشف التاجر
+  function renderTraderStatement() {
+    if (!traderSelect.value) {
+      alert('اختر تاجر أولاً');
+      return;
+    }
+    var i;
+    var trader = null;
+    for (i = 0; i < statTraders.length; i++) {
+      if (String(statTraders[i].id) === String(traderSelect.value)) {
+        trader = statTraders[i];
+        break;
+      }
+    }
+    if (!trader) return;
+
+    traderStatementBody.innerHTML = '';
+    traderStatementTitle.textContent =
+      'كشف حساب التاجر: ' + trader.name + ' (الرصيد الحالي: ' + (trader.balance || 0) + ')';
+
+    if (!trader.movements || !trader.movements.length) {
+      traderStatementBody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center; padding:4px;">لا توجد حركات</td></tr>';
+      traderStatementBox.style.display = 'block';
+      return;
+    }
+
+    for (i = 0; i < trader.movements.length; i++) {
+      var mv = trader.movements[i];
+      var tr = document.createElement('tr');
+
+      var typeLabel = mv.type === 'debt'
+        ? 'دين / مشتريات'
+        : mv.type === 'payment'
+        ? 'سداد'
+        : 'أخرى';
+
+      tr.innerHTML =
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.date || '') + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + typeLabel + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.amount || 0) + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.note || '') + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px; text-align:center;">' +
+          '<button type="button" data-kind="trader" data-id="' + mv.id + '" style="padding:2px 6px; font-size:11px;">حذف</button>' +
+        '</td>';
+
+      traderStatementBody.appendChild(tr);
+    }
+
+    traderStatementBox.style.display = 'block';
+  }
+
+  showTraderStatementBtn.onclick = renderTraderStatement;
+
+  // عرض كشف المدين
+  function renderDebtorStatement() {
+    if (!debtorSelect.value) {
+      alert('اختر مدين أولاً');
+      return;
+    }
+    var i;
+    var debtor = null;
+    for (i = 0; i < statDebtors.length; i++) {
+      if (String(statDebtors[i].id) === String(debtorSelect.value)) {
+        debtor = statDebtors[i];
+        break;
+      }
+    }
+    if (!debtor) return;
+
+    debtorStatementBody.innerHTML = '';
+    debtorStatementTitle.textContent =
+      'كشف حساب المدين: ' + debtor.name + ' (الرصيد الحالي: ' + (debtor.balance || 0) + ')';
+
+    if (!debtor.movements || !debtor.movements.length) {
+      debtorStatementBody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center; padding:4px;">لا توجد حركات</td></tr>';
+      debtorStatementBox.style.display = 'block';
+      return;
+    }
+
+    for (i = 0; i < debtor.movements.length; i++) {
+      var mv = debtor.movements[i];
+      var tr = document.createElement('tr');
+
+      var typeLabel = mv.type === 'debt'
+        ? 'دين'
+        : mv.type === 'payment'
+        ? 'سداد'
+        : 'أخرى';
+
+      tr.innerHTML =
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.date || '') + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + typeLabel + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.amount || 0) + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px;">' + (mv.note || '') + '</td>' +
+        '<td style="border:1px solid #d1d5db; padding:3px; text-align:center;">' +
+          '<button type="button" data-kind="debtor" data-id="' + mv.id + '" style="padding:2px 6px; font-size:11px;">حذف</button>' +
+        '</td>';
+
+      debtorStatementBody.appendChild(tr);
+    }
+
+    debtorStatementBox.style.display = 'block';
+  }
+
+  showDebtorStatementBtn.onclick = renderDebtorStatement;
+
+  // حذف حركة (تاجر أو مدين)
+  function handleDelete(e) {
+    var btn = e.target;
+    if (btn.tagName.toLowerCase() !== 'button') return;
+
+    var kind = btn.getAttribute('data-kind');
+    var id = Number(btn.getAttribute('data-id'));
+    if (!kind || !id) return;
+
+    if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
+
+    var i, list, select, renderFn, storageKey;
+
+    if (kind === 'trader') {
+      list = statTraders;
+      select = traderSelect;
+      renderFn = renderTraderStatement;
+      storageKey = 'stat_traders';
+    } else {
+      list = statDebtors;
+      select = debtorSelect;
+      renderFn = renderDebtorStatement;
+      storageKey = 'stat_debtors';
+    }
+
+    var currentId = select.value;
+    var owner = null;
+    for (i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(currentId)) {
+        owner = list[i];
+        break;
+      }
+    }
+    if (!owner || !owner.movements) return;
+
+    var idx = -1;
+    var mv = null;
+    for (i = 0; i < owner.movements.length; i++) {
+      if (Number(owner.movements[i].id) === id) {
+        idx = i;
+        mv = owner.movements[i];
+        break;
+      }
+    }
+    if (idx === -1) return;
+
+    // عكس تأثير الحركة على الرصيد
+    if (mv.type === 'debt') {
+      owner.balance -= mv.amount || 0;
+    } else if (mv.type === 'payment') {
+      owner.balance += mv.amount || 0;
+    }
+
+    owner.movements.splice(idx, 1);
+    save(storageKey, list);
+    renderFn();
+  }
+
+  traderStatementBody.onclick = handleDelete;
+  debtorStatementBody.onclick = handleDelete;
+})();
+</script> 
 </body>
 </html>
