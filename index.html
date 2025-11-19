@@ -1655,5 +1655,56 @@ if("serviceWorker" in navigator){
   debtorStatementBody.onclick = handleDelete;
 })();
 </script> 
+  <script>
+(function(){
+  function addTraderStatementSection(){
+    const traderTab=document.querySelector('#tab-trader')||document.querySelector('[data-tab="تجار"]');
+    if(!traderTab)return;
+    const section=document.createElement('div');
+    section.innerHTML=`
+      <hr><h3 style="font-size:16px;">📒 كشف حساب التاجر</h3>
+      <div style="margin:5px 0;">
+        <select id="traderSelect" style="padding:4px;"></select>
+        <button id="showTraderStatementBtn" style="padding:4px 10px;">عرض كشف الحساب</button>
+      </div>
+      <div id="traderStatementBox" style="display:none;max-height:220px;overflow:auto;border-top:1px solid #ddd;padding-top:5px;">
+        <h4 id="traderStatementTitle" style="margin:4px 0;font-size:14px;"></h4>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#f3f4f6">
+            <th>تاريخ</th><th>نوع</th><th>مبلغ</th><th>ملاحظة</th><th>حذف</th>
+          </tr></thead><tbody id="traderStatementBody"></tbody>
+        </table>
+      </div>`;
+    traderTab.appendChild(section);
+  }
+
+  function addDebtorStatementSection(){
+    const debtTab=document.querySelector('#tab-debts')||document.querySelector('[data-tab="ديون"]');
+    if(!debtTab)return;
+    const section=document.createElement('div');
+    section.innerHTML=`
+      <hr><h3 style="font-size:16px;">📒 كشف حساب الديون (المدينين)</h3>
+      <div style="margin:5px 0;">
+        <select id="debtorSelect" style="padding:4px;"></select>
+        <button id="showDebtorStatementBtn" style="padding:4px 10px;">عرض كشف الحساب</button>
+      </div>
+      <div id="debtorStatementBox" style="display:none;max-height:220px;overflow:auto;border-top:1px solid #ddd;padding-top:5px;">
+        <h4 id="debtorStatementTitle" style="margin:4px 0;font-size:14px;"></h4>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#f3f4f6">
+            <th>تاريخ</th><th>نوع</th><th>مبلغ</th><th>ملاحظة</th><th>حذف</th>
+          </tr></thead><tbody id="debtorStatementBody"></tbody>
+        </table>
+      </div>`;
+    debtTab.appendChild(section);
+  }
+
+  // تشغيل الإدراج بعد تحميل الصفحة
+  window.addEventListener('DOMContentLoaded',()=>{
+    addTraderStatementSection();
+    addDebtorStatementSection();
+  });
+})();
+  </script>
 </body>
 </html>
