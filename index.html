@@ -1023,10 +1023,10 @@ if("serviceWorker" in navigator){
   });
 }
 </script>
- <script>
+<script>
 window.addEventListener('load', function(){
 
-/* ===== خانة ملاحظة لفاتورة التاجر ===== */
+/* إضافة خانة ملاحظة لفاتورة التاجر */
 if(!document.getElementById('supInvoiceNote')){
   const supInvoice=document.getElementById('supInvoice');
   if(supInvoice){
@@ -1037,7 +1037,7 @@ if(!document.getElementById('supInvoiceNote')){
   }
 }
 
-/* ===== خانة ملاحظة لدفعة التاجر ===== */
+/* إضافة خانة ملاحظة لدفعة التاجر */
 if(!document.getElementById('supPayNote')){
   const supPay=document.getElementById('supPayAmount');
   if(supPay){
@@ -1048,18 +1048,112 @@ if(!document.getElementById('supPayNote')){
   }
 }
 
-/* ===== خانة ملاحظة لسداد الدين ===== */
-if(!document.getElementById('debtPayNote')){
-  const debtPay=document.getElementById('debtPayAmt');
-  if(debtPay){
-    const col=document.createElement('div');
-    col.className='col';
-    col.innerHTML='<input type="text" id="debtPayNote" placeholder="ملاحظة / وصف السداد">';
-    debtPay.closest('.col').after(col);
+/* تعديل تسجيل فاتورة التاجر مع الملاحظة */
+window.addSupplierInvoice=function(){
+  const name=(qs('#supName').value||'').trim();
+  const amt=parseFloat(qs('#supInvoice').value||'0');
+  const note=(qs('#supInvoiceNote')?.value||'').trim();
+
+  if(!name||!amt){alert('أدخل اسم وقيمة صحيحة');return}
+
+  const S=getSuppliers();
+  if(!S.people) S.people={};
+  if(!S.people[name]) S.people[name]={balance:0,history:[]};
+
+  S.people[name].balance += amt;
+  S.people[name].history.push({
+    id:uid(),
+    date:today(),
+    type:'invoice',
+    amount:amt,
+    note: note || 'فاتورة مشتريات'
+  });
+
+  saveSuppliers(S);
+
+  qs('#supName').value='';
+  qs('#supInvoice').value='';
+  if(qs('#supInvoiceNote')) qs('#supInvoiceNote').value='';
+
+  renderSuppliers();
+};
+
+/* تعديل تسجيل دفعة التاجر مع الملاحظة */
+window.paySupplier=function(){
+  const name=(qs('#supPayName').value||'').trim();
+  const amt=parseFloat(qs('#supPayAmount').value||'0');
+  const src=qs('#supPaySource').value;
+  const note=(qs('#supPayNote')?.value||'').trim();
+
+  if(!name||!amt){alert('أدخل اسم ومبلغ صحيح');return}
+
+  const S=getSuppliers();
+  if(!S.people||!S.people[name]){alert('لا يوجد هذا التاجر');return}
+
+  const finalNote = note || `دفعة من ${src==='store'?'كاش المحل':(src==='owner'?'صندوق المالك':'البنك')}`;
+
+  S.people[name].balance -= amt;
+  S.people[name].history.push({
+    id:uid(),
+    date:today(),
+    type:'pay',
+    amount:amt,
+    note:finalNote,
+    source:src
+  });
+
+  saveSuppliers(S);
+
+  if(src==='store'){
+    const d=getStoreData();
+    d.expenses.push({
+      id:uid(),
+      date:today(),
+      type:'كاش',
+      desc:`دفعة تاجر (${name})`,
+      amount:amt,
+      note:finalNote,
+      benefType:'supplier',
+      benefName:name
+    });
+    saveStoreData(d);
+    renderLists();
+  }else if(src==='owner'){
+    const O=getOwner();
+    O.ledger.push({
+      id:uid(),
+      date:today(),
+      type:'out',
+      amount:amt,
+      note:`دفعة تاجر (${name}) — ${finalNote}`,
+      link:{type:'supplier',name}
+    });
+    saveOwner(O);
+    updateOwnerBalanceUI();
+  }else{
+    const d=getStoreData();
+    d.expenses.push({
+      id:uid(),
+      date:today(),
+      type:'بنك',
+      desc:`دفعة تاجر (${name})`,
+      amount:amt,
+      note:finalNote,
+      benefType:'supplier',
+      benefName:name
+    });
+    saveStoreData(d);
+    renderLists();
   }
-}
+
+  qs('#supPayName').value='';
+  qs('#supPayAmount').value='';
+  if(qs('#supPayNote')) qs('#supPayNote').value='';
+
+  renderSuppliers();
+  renderOwnerStatement();
+};
 
 });
- </script>     
-</body>
+</script>
 </html>
