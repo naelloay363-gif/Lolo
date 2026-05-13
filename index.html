@@ -1023,6 +1023,75 @@ if("serviceWorker" in navigator){
   });
 }
 </script>
+<script>
+(function(){
+  function addInputAfter(targetId,newId,placeholder){
+    if(document.getElementById(newId)) return;
+    const target=document.getElementById(targetId);
+    if(!target) return;
+    const col=target.closest('.col');
+    const div=document.createElement('div');
+    div.className='col';
+    div.innerHTML=`<input type="text" id="${newId}" placeholder="${placeholder}">`;
+    col.parentNode.insertBefore(div,col.nextSibling);
+  }
 
+  document.addEventListener('DOMContentLoaded',function(){
+    addInputAfter('supInvoice','supInvoiceNote','ملاحظة / وصف فاتورة التاجر');
+    addInputAfter('supPayAmount','supPayNote','ملاحظة / وصف دفعة التاجر');
+    addInputAfter('debtPayAmt','debtPayNote','ملاحظة / وصف سداد الدين');
+  });
+
+  const oldAddSupplierInvoice = window.addSupplierInvoice;
+  window.addSupplierInvoice = function(){
+    const note = (document.getElementById('supInvoiceNote')?.value || '').trim();
+    oldAddSupplierInvoice();
+    try{
+      const name=(document.getElementById('supName')?.value||'').trim();
+      const S=getSuppliers();
+      const names=Object.keys(S.people||{});
+      const lastName=name || names[names.length-1];
+      const p=S.people[lastName];
+      if(p && p.ledger && p.ledger.length){
+        p.ledger[p.ledger.length-1].note = note;
+        saveSuppliers(S);
+      }
+      if(document.getElementById('supInvoiceNote')) document.getElementById('supInvoiceNote').value='';
+    }catch(e){}
+  };
+
+  const oldPaySupplier = window.paySupplier;
+  window.paySupplier = function(){
+    const note = (document.getElementById('supPayNote')?.value || '').trim();
+    oldPaySupplier();
+    try{
+      const name=(document.getElementById('supPayName')?.value||'').trim();
+      const S=getSuppliers();
+      const p=S.people?.[name];
+      if(p && p.ledger && p.ledger.length){
+        p.ledger[p.ledger.length-1].note = note;
+        saveSuppliers(S);
+      }
+      if(document.getElementById('supPayNote')) document.getElementById('supPayNote').value='';
+    }catch(e){}
+  };
+
+  const oldPayDebt = window.payDebt;
+  window.payDebt = function(){
+    const note = (document.getElementById('debtPayNote')?.value || '').trim();
+    oldPayDebt();
+    try{
+      const name=(document.getElementById('debtPayName')?.value||'').trim();
+      const D=getDebts();
+      const p=D.people?.[name];
+      if(p && p.ledger && p.ledger.length){
+        p.ledger[p.ledger.length-1].note = note;
+        saveDebts(D);
+      }
+      if(document.getElementById('debtPayNote')) document.getElementById('debtPayNote').value='';
+    }catch(e){}
+  };
+})();
+</script>
 </body>
 </html>
