@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>نظام المحاسبة</title>
+<meta name="theme-color" content="#2b7bff"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<style>
+:root{--blue:#2b7bff;--blue-soft:#eaf3ff;--line:#e5e7eb;--card:#fff;--danger:#dc3545;--ok:#16a34a;--muted:#64748b}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Tajawal,Segoe UI,Tahoma,Arial,sans-serif;background:var(--blue-soft);color:#0f172a}
+header{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+header h1{margin:0;font-size:18px}
+header .owner-badge{margin-top:6px;font-size:14px;color:#eaf5ff;background:rgba(255,255,255,.12);display:inline-block;padding:6px 10px;border-radius:10px}
+main{padding:12px;max-width:1200px;margin:auto;padding-bottom:160px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+h3{margin:6px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.col{flex:1;min-width:190px}
+label{font-size:13px;color:#111}
+input,select,textarea,button{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff}
+textarea{min-height:70px;resize:vertical}
+button{border:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:10px 14px;font-size:14px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-outline{background:#fff;border:1px solid var(--line);color:#111}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ok{background:var(--ok);color:#fff}
+.hint{font-size:12px;color:var(--muted)}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.list .item:last-child{border-bottom:none}
+.list .meta{flex:1}
+.kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi .box{background:#f3f7ff;border:1px solid #e3ecff;border-radius:12px;padding:10px;text-align:center}
+.kpi .box b{display:block;font-size:16px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:14px}
+th{background:#f8fbff}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex}
+.tab{flex:1}
+.tab button{width:100%;background:#fff;border:none;padding:12px 0}
+.tab.active{background:#f0f6ff}
+.tag{display:inline-block;padding:.2rem .5rem;border-radius:999px;background:#eef2ff;border:1px solid #e5e7eb;font-size:12px}
+.subtle{background:#f9fbff;border:1px solid #eef2ff;border-radius:12px;padding:10px;margin-top:8px}
+.separator{height:1px;background:var(--line);margin:8px 0}
+h2.section{margin:0 0 8px}
+@media print{header,nav.tabs,.print-hide{display:none!important} body{background:#fff} .card{box-shadow:none;border:none;padding:0;margin:0} .page{page-break-after:always;margin-bottom:30px}}
+</style>
+</head>
+<body>
+<header class="print-hide">
+  <h1>نظام المحاسبة</h1>
+  <div class="owner-badge">رصيد صندوق المالك: <b id="ownerBalanceVal">0</b></div>
+</header>
+
+<main>
+  <div class="card print-hide">
+    <div class="row">
+      <div class="col">
+        <label>المحل النشط</label>
+        <select id="storeSelect" onchange="changeStore()">
+          <option value="store1">روان بيبي</option>
+          <option value="store2">جنتل بيبي عبود</option>
+          <option value="store3">بسطة</option>
+        </select>
+      </div>
+      <div class="col">
+        <label>تاريخ اليوم</label>
+        <input type="date" id="todayInput"/>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="settleDay()">تسوية اليوم للمحل النشط</button>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-outline" onclick="previewAllStores()">👁️ معاينة تحصيل كل محل (اليوم)</button>
+      </div>
+      <div class="col">
+        <label>&nbsp;</label>
+        <button class="btn btn-ok" onclick="settleAllStores()">💼 تسوية مجمّعة (كل المحلات)</button>
+      </div>
+    </div>
+    <div class="hint">حفظ تلقائي محلي + يعمل أوفلاين مع manifest/sw.js.</div>
+  </div>
+
+  <section class="card" data-tab="input">
+    <h3>تسجيل المبيعات</h3>
+    <div class="row">
+      <div class="col"><input type="number" id="saleAmount" placeholder="المبلغ"></div>
+      <div class="col">
+        <select id="saleType">
+          <option value="كاش">كاش</option>
+          <option value="بنك">بنك</option>
+        </select>
+      </div>
+      <div class="col"><input type="text" id="saleNote" placeholder="ملاحظات (اسم المشتري/الصنف/جوال)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addSale()">➕ إضافة بيع</button></div>
+    </div>
+    <div id="recentSales" class="list"></div>
+
+    <h3 style="margin-top:18px">تسجيل المصاريف (من كاش/بنك المحل)</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="expenseDesc" placeholder="وصف المصروف"></div>
+      <div class="col"><input type="number" id="expenseAmount" placeholder="المبلغ"></div>
+      <div class="col">
+        <select id="expenseType">
+          <option value="كاش">كاش</option>
+          <option value="بنك">بنك</option>
+        </select>
+      </div>
+      <div class="col"><input type="text" id="expenseNote" placeholder="ملاحظات (اختياري)"></div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <select id="expenseBenefType">
+          <option value="">— ربط تلقائي (اختياري) —</option>
+          <option value="supplier">سداد تاجر</option>
+          <option value="loan">سداد مسلف</option>
+        </select>
+      </div>
+      <div class="col">
+        <input type="text" id="expenseBenefName" list="benefList" placeholder="اكتب الاسم وسيظهر اقتراح">
+        <datalist id="benefList"></datalist>
+      </div>
+      <div class="col">
+        <button class="btn btn-ok" id="addExpenseBtn" onclick="addExpense()">➕ إضافة مصروف</button>
+      </div>
+    </div>
+    <div id="recentExpenses" class="list"></div>
+  </section>
+
+  <section class="card" data-tab="daily">
+    <h3>التقرير اليومي</h3>
+    <div class="row print-hide">
+      <div class="col"><label>التاريخ</label><input type="date" id="r_date"></div>
+      <div class="col"><label>المحل</label>
+        <select id="r_store">
+          <option value="store1">روان بيبي</option>
+          <option value="store2">جنتل بيبي عبود</option>
+          <option value="store3">بسطة</option>
+        </select>
+      </div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="generateDaily()">عرض التقرير</button></div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة PDF</button></div>
+    </div>
+    <div id="dailyWrap"></div>
+  </section>
+
+  <section class="card" data-tab="range">
+    <h3>تقرير فترة / مجمّع</h3>
+    <div class="row print-hide">
+      <div class="col"><label>من</label><input type="date" id="f_from"></div>
+      <div class="col"><label>إلى</label><input type="date" id="f_to"></div>
+      <div class="col">
+        <label>النمط</label>
+        <select id="f_mode">
+          <option value="per">منفصل لكل محل</option>
+          <option value="all">مجمّع للمحلات الثلاثة</option>
+        </select>
+      </div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="generateRange()">عرض التقرير</button></div>
+      <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة PDF</button></div>
+    </div>
+    <div id="rangeWrap"></div>
+  </section>
+
+  <section class="card" data-tab="loans">
+    <h3>السُلف (كاش فقط)</h3>
+    <div class="row">
+      <div class="col"><input type="text" id="loanPerson" placeholder="اسم المُسلف"></div>
+      <div class="col"><input type="number" id="loanAmount" placeholder="مبلغ السلفة (+)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addLoan()">➕ إضافة سلفة</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input type="text" id="loanPayPerson" list="loanList" placeholder="اسم المُسلف — سداد"></div>
+      <datalist id="loanList"></datalist>
+      <div class="col"><input type="number" id="loanPayAmount" placeholder="مبلغ السداد (−)"></div>
+      <div class="col">
+        <select id="loanPaySource">
+          <option value="store">من كاش المحل</option>
+          <option value="owner">من صندوق المالك</option>
+        </select>
+      </div>
+      <div class="col"><button class="btn btn-primary" onclick="payLoan()">💸 تسجيل سداد</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="loanStmtName" list="loanList" placeholder="اسم مسلف — كشف مفصل"></div>
+        <div class="col"><input type="date" id="loanFrom"></div>
+        <div class="col"><input type="date" id="loanTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderLoanStmt()">📄 عرض كشف المسلف</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="loansWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="loanStmtWrap"></div>
+  </section>
+
+  <section class="card" data-tab="suppliers">
+    <h3>التُجار</h3>
+
+    <div class="row">
+      <div class="col"><input type="text" id="supName" placeholder="اسم التاجر"></div>
+      <div class="col"><input type="number" id="supInvoice" placeholder="قيمة الفاتورة (+)"></div>
+      <div class="col"><input type="text" id="supInvoiceNote" placeholder="ملاحظة / وصف الفاتورة"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addSupplierInvoice()">➕ تسجيل فاتورة</button></div>
+    </div>
+
+    <div class="row">
+      <div class="col"><input type="text" id="supPayName" list="supList" placeholder="اسم التاجر — دفعة"></div>
+      <datalist id="supList"></datalist>
+      <div class="col"><input type="number" id="supPayAmount" placeholder="مبلغ الدفعة (−)"></div>
+      <div class="col"><input type="text" id="supPayNote" placeholder="ملاحظة / وصف الدفعة"></div>
+      <div class="col">
+        <select id="supPaySource">
+          <option value="store">من كاش المحل</option>
+          <option value="owner">من صندوق المالك</option>
+          <option value="bank">من حساب البنك</option>
+        </select>
+      </div>
+      <div class="col"><button class="btn btn-primary" onclick="paySupplier()">💳 تسجيل دفعة</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="supStmtName" list="supList" placeholder="اسم تاجر — كشف مفصل"></div>
+        <div class="col"><input type="date" id="supFrom"></div>
+        <div class="col"><input type="date" id="supTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderSupplierStmt()">📄 عرض كشف التاجر</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="supWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="supStmtWrap"></div>
+  </section>
+
+  <section class="card" data-tab="debts">
+    <h3>الديون (العملاء) — أرصدة + تفاصيل + طباعة</h3>
+    <div class="row">
+      <div class="col"><input id="debtName" placeholder="اسم العميل"></div>
+      <div class="col"><input type="number" id="debtAmt" placeholder="قيمة الدين (+)"></div>
+      <div class="col"><input id="debtNote" placeholder="ملاحظة (اختياري)"></div>
+      <div class="col"><button class="btn btn-ok" onclick="addDebt()">➕ إضافة دين</button></div>
+    </div>
+    <div class="row">
+      <div class="col"><input id="debtPayName" list="debtList" placeholder="اسم العميل — سداد دين"></div>
+      <datalist id="debtList"></datalist>
+      <div class="col"><input type="number" id="debtPayAmt" placeholder="مبلغ السداد (−)"></div>
+      <div class="col">
+        <select id="debtMethod">
+          <option>كاش</option>
+          <option>بنك</option>
+        </select>
+      </div>
+      <div class="col"><button class="btn btn-primary" onclick="payDebt()">✅ تسجيل سداد دين</button></div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة المعروض</button></div>
+      </div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:8px">
+      <div class="row">
+        <div class="col"><input id="debtStmtName" list="debtList" placeholder="اسم العميل — كشف مفصل"></div>
+        <div class="col"><input type="date" id="debtFrom"></div>
+        <div class="col"><input type="date" id="debtTo"></div>
+        <div class="col"><button class="btn btn-outline" onclick="renderDebtStmt()">📄 عرض كشف العميل</button></div>
+        <div class="col"><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+    </div>
+
+    <div id="debtsWrap" class="subtle" style="margin-top:8px"></div>
+    <div id="debtStmtWrap"></div>
+  </section>
+
+  <section class="card" data-tab="owner">
+    <h3>صندوق المالك — كشف/تحصيل مجمّع + سحب موجه</h3>
+
+    <div class="subtle">
+      <h4>تقرير مجمّع لكل المحلات (تفصيل كاش/بنك لكل محل)</h4>
+      <div class="row print-hide">
+        <div class="col"><label>من</label><input type="date" id="of_from"></div>
+        <div class="col"><label>إلى</label><input type="date" id="of_to"></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="renderOwnerAggregate()">عرض التقرير</button></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة التقرير</button></div>
+      </div>
+      <div id="ownerAggWrap"></div>
+    </div>
+
+    <div class="subtle" style="margin-top:12px">
+      <h4>كشف صندوق المالك (الحركات) — مع حذف القيد</h4>
+      <div class="row print-hide">
+        <div class="col"><label>من</label><input type="date" id="ox_from"></div>
+        <div class="col"><label>إلى</label><input type="date" id="ox_to"></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-primary" onclick="renderOwnerStatement()">عرض الكشف</button></div>
+        <div class="col"><label>&nbsp;</label><button class="btn btn-outline" onclick="printSection()">🖨️ طباعة الكشف</button></div>
+      </div>
+      <div id="ownerWrap"></div>
+    </div>
+
+    <div class="subtle" style="margin-top:12px">
+      <h4>سحب من صندوق المالك (موجّه لتاجر/مسلف)</h4>
+      <div class="row">
+        <div class="col"><input id="ownerPayName" list="supList" placeholder="اسم التاجر/المسلف"></div>
+        <div class="col">
+          <select id="ownerPayType">
+            <option value="supplier">سداد تاجر</option>
+            <option value="loan">سداد مسلف</option>
+          </select>
+        </div>
+        <div class="col"><input type="number" id="ownerPayAmt" placeholder="المبلغ (−)"></div>
+        <div class="col"><button class="btn btn-danger" onclick="ownerPayOut()">سحب موجّه</button></div>
+      </div>
+      <div class="hint">سيتم خصم المبلغ من حساب التاجر/المسلف وتسجيله في كشف صندوق المالك. يمكن حذف القيد لاحقًا من الكشف.</div>
+    </div>
+
+    <div class="subtle print-hide" style="margin-top:12px">
+      <h4>نسخ احتياطي</h4>
+      <div class="row">
+        <div class="col"><button class="btn btn-outline" onclick="exportBackup()">⬇️ تصدير نسخة احتياطية</button></div>
+        <div class="col">
+          <label for="importFile" class="btn btn-ok" style="display:inline-block;cursor:pointer;text-align:center">⬆️ استيراد نسخة</label>
+          <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importBackup(this.files[0])"/>
+        </div>
+      </div>
+      <div class="hint">تشمل المحلات + السلف + التجار + الديون + صندوق المالك.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs print-hide">
+  <div class="tab active"><button onclick="showTab('input')">إدخال</button></div>
+  <div class="tab"><button onclick="showTab('daily')">يومي</button></div>
+  <div class="tab"><button onclick="showTab('range')">فترة/مجمّع</button></div>
+  <div class="tab"><button onclick="showTab('loans')">سُلف</button></div>
+  <div class="tab"><button onclick="showTab('suppliers')">تُجار</button></div>
+  <div class="tab"><button onclick="showTab('debts')">ديون</button></div>
+  <div class="tab"><button onclick="showTab('owner')">المالك</button></div>
+</nav>
+
+<script>
+/* ===== أدوات مساعدة ===== */
+const stores={store1:"روان بيبي",store2:"جنتل بيبي عبود",store3:"بسطة"};let currentStore="store1";
+const qs=s=>document.querySelector(s), qsa=s=>Array.from(document.querySelectorAll(s));
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const inR=(iso,from,to)=>{if(!iso)return false;const d=new Date(iso+"T00:00:00");return(!from||d>=new Date(from+"T00:00:00"))&&(!to||d<=new Date(to+"T00:00:00"));};
+const sum=(arr,fn)=>arr.reduce((a,b)=>a+fn(b),0);
+
+/* ===== تخزين ===== */
+const getStoreData=(st=currentStore)=>JSON.parse(localStorage.getItem(st)||'{"sales":[],"expenses":[]}');
+const saveStoreData=(data,st=currentStore)=>localStorage.setItem(st,JSON.stringify(data));
+const getOwner=()=>JSON.parse(localStorage.getItem('owner_fund')||'{"ledger":[]}');
+const saveOwner=v=>localStorage.setItem('owner_fund',JSON.stringify(v));
+const getLoans=()=>JSON.parse(localStorage.getItem('loans')||'{"people":{}}');
+const saveLoans=v=>localStorage.setItem('loans',JSON.stringify(v));
+const getSuppliers=()=>JSON.parse(localStorage.getItem('suppliers')||'{"people":{}}');
+const saveSuppliers=v=>localStorage.setItem('suppliers',JSON.stringify(v));
+const getDebts=()=>JSON.parse(localStorage.getItem('debts')||'{"people":{}}');
+const saveDebts=v=>localStorage.setItem('debts',JSON.stringify(v));
+
+/* ===== واجهة ===== */
+function changeStore(){currentStore=qs('#storeSelect').value;renderLists()}
+function showTab(name){
+  qsa('[data-tab]').forEach(el=>el.style.display=(el.getAttribute('data-tab')===name?'block':'none'));
+  const order=['input','daily','range','loans','suppliers','debts','owner'];
+  qsa('.tabs .tab').forEach((t,i)=>t.classList.toggle('active',order[i]===name));
+  if(name==='input'){renderLists();refillLists()}
+  if(name==='loans'){renderLoans()}
+  if(name==='suppliers'){renderSuppliers()}
+  if(name==='debts'){renderDebts()}
+  if(name==='owner'){updateOwnerBalanceUI();renderOwnerStatement()}
+}
+function printSection(){window.print()}
+
+/* ===== اقتراحات أسماء ديناميكية ===== */
+function supplierNames(){const S=getSuppliers();return S.people?Object.keys(S.people):[]}
+function loanNames(){const L=getLoans();return L.people?Object.keys(L.people):[]}
+function debtorNames(){const D=getDebts();return D.people?Object.keys(D.people):[]}
+function refillLists(){
+  const dl=qs('#benefList'); if(dl){const names=[...new Set([...supplierNames(),...loanNames()])]; dl.innerHTML=names.map(n=>`<option value="${n}">`).join('')}
+  const dl2=qs('#loanList'); if(dl2){dl2.innerHTML=loanNames().map(n=>`<option value="${n}">`).join('')}
+  const dl3=qs('#supList'); if(dl3){dl3.innerHTML=supplierNames().map(n=>`<option value="${n}">`).join('')}
+  const dl4=qs('#debtList'); if(dl4){dl4.innerHTML=debtorNames().map(n=>`<option value="${n}">`).join('')}
+}
+
+/* ===== المبيعات ===== */
+function addSale(){
+  const a=parseFloat(qs('#saleAmount').value||'0'), t=qs('#saleType').value, n=(qs('#saleNote').value||'').trim();
+  if(!a){alert('أدخل مبلغ صحيح');return}
+  const d=getStoreData(); d.sales.push({id:uid(),date:today(),type:t,amount:a,note:n}); saveStoreData(d);
+  qs('#saleAmount').value=''; qs('#saleNote').value=''; renderLists();
+}
+function de
